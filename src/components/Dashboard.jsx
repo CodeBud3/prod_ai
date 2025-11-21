@@ -3,12 +3,14 @@ import { AiEngine } from '../services/AiEngine';
 import { QuickAdd } from './QuickAdd';
 import { EditTaskModal } from './EditTaskModal';
 import { CircularProgress } from './CircularProgress';
+import { TaskItem } from './TaskItem';
 
 export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
     const [loading, setLoading] = useState(!plan && tasks.length > 0);
     const [sortBy, setSortBy] = useState('smart'); // smart, date_added, priority, due_date
     const [editingTask, setEditingTask] = useState(null);
     const [viewFilter, setViewFilter] = useState('all'); // all, todo, completed
+    const [groupBy, setGroupBy] = useState('none'); // none, tags
 
     // Check for reminders
     useEffect(() => {
@@ -296,192 +298,194 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 </div>
 
                 {/* Sort Controls */}
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Sort:</span>
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        style={{
-                            background: 'rgba(0,0,0,0.2)',
-                            border: '1px solid rgba(255,255,255,0.1)',
-                            color: 'var(--text-primary)',
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            fontSize: '12px'
-                        }}
-                    >
-                        <option value="smart">Smart (AI)</option>
-                        <option value="priority">Priority</option>
-                        <option value="due_date">Due Date</option>
-                        <option value="date_added">Date Added</option>
-                    </select>
+                {/* Sort Controls */}
+                {/* Sort & Group Controls */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                    {/* Grouping */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Group:</span>
+                        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
+                            {[
+                                { id: 'none', label: 'None' },
+                                { id: 'tags', label: 'Tags' },
+                                { id: 'date', label: 'Date' }
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => setGroupBy(opt.id)}
+                                    style={{
+                                        background: groupBy === opt.id ? 'var(--accent-primary)' : 'transparent',
+                                        color: groupBy === opt.id ? 'white' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        padding: '4px 12px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Sorting */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Sort:</span>
+                        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
+                            {[
+                                { id: 'smart', label: 'Smart' },
+                                { id: 'priority', label: 'Priority' },
+                                { id: 'due_date', label: 'Due' },
+                                { id: 'date_added', label: 'Added' }
+                            ].map(opt => (
+                                <button
+                                    key={opt.id}
+                                    onClick={() => setSortBy(opt.id)}
+                                    style={{
+                                        background: sortBy === opt.id ? 'var(--accent-primary)' : 'transparent',
+                                        color: sortBy === opt.id ? 'white' : 'var(--text-secondary)',
+                                        border: 'none',
+                                        padding: '4px 12px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s'
+                                    }}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <div className="task-list">
-                {displayTasks.map(task => (
-                    <div
-                        key={task.id}
-                        className={`task-item ${task.status === 'done' ? 'done' : ''} ${task.reminding ? 'reminding' : ''}`}
-                        onDoubleClick={() => setEditingTask(task)}
-                        style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            padding: '16px',
-                            background: 'rgba(255,255,255,0.03)',
-                            marginBottom: '8px',
-                            borderRadius: 'var(--radius-md)',
-                            borderLeft: `4px solid ${getPriorityColor(task.priority) || 'var(--text-muted)'}`,
-                            cursor: 'default',
-                            position: 'relative'
-                        }}
-                    >
-                        <input
-                            type="checkbox"
-                            checked={task.status === 'done'}
-                            onChange={() => toggleTask(task.id)}
-                            style={{ width: '20px', height: '20px', marginRight: '16px', marginTop: '4px', cursor: 'pointer' }}
-                        />
-
-                        <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div style={{ flex: 1 }}>
-                                    <div style={{ fontWeight: 500, textDecoration: task.status === 'done' ? 'line-through' : 'none', color: task.status === 'done' ? 'var(--text-muted)' : 'inherit' }}>
-                                        {task.title}
-                                    </div>
-                                    {/* Glassy Blur Description */}
-                                    {task.description && (
-                                        <div style={{
-                                            fontSize: '14px',
-                                            color: 'var(--text-secondary)',
-                                            marginTop: '4px',
-                                            maxHeight: '3em',
-                                            overflow: 'hidden',
-                                            maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                                            WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                                            opacity: 0.8
-                                        }}>
-                                            {task.description}
-                                        </div>
-                                    )}
-                                    {/* Completion Timestamp */}
-                                    {task.status === 'done' && task.completedAt && (
-                                        <div style={{ fontSize: '12px', color: 'var(--accent-success)', marginTop: '4px', fontStyle: 'italic' }}>
-                                            ✓ Completed {formatTimestamp(task.completedAt)}
-                                        </div>
-                                    )}
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
-                                    {task.dueDate && (
-                                        <div style={{ fontSize: '12px', color: 'var(--accent-warning)', whiteSpace: 'nowrap' }}>
-                                            {task.dueDate}
-                                        </div>
-                                    )}
-
-
-                                    {/* Reminder Button/Dropdown */}
-                                    {task.reminding ? (
-                                        <button
-                                            onClick={() => handleDismissReminder(task.id)}
-                                            style={{
-                                                background: 'var(--accent-primary)',
-                                                border: 'none',
-                                                color: 'white',
-                                                cursor: 'pointer',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                fontSize: '11px',
-                                                fontWeight: 600
-                                            }}
-                                            title="Dismiss Reminder"
-                                        >
-                                            Dismiss
-                                        </button>
-                                    ) : (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                            <select
-                                                value={task.remindAt ? 'active' : ''}
-                                                onChange={(e) => {
-                                                    if (e.target.value && e.target.value !== 'active') {
-                                                        handleSetReminder(task.id, parseInt(e.target.value));
-                                                        e.target.value = '';
-                                                    }
-                                                }}
-                                                style={{
-                                                    background: 'transparent',
-                                                    border: '1px solid rgba(255,255,255,0.1)',
-                                                    color: 'var(--text-muted)',
-                                                    padding: '4px',
-                                                    fontSize: '11px',
-                                                    borderRadius: '4px',
-                                                    cursor: 'pointer'
-                                                }}
-                                                title="Set Reminder"
-                                            >
-                                                <option value="">⏰ Remind</option>
-                                                <option value="active" disabled hidden>Active</option>
-                                                <option value="1">1 min</option>
-                                                <option value="5">5 min</option>
-                                                <option value="15">15 min</option>
-                                                <option value="30">30 min</option>
-                                                <option value="60">1 hour</option>
-                                                <option value="120">2 hours</option>
-                                            </select>
-                                            {task.remindAt && task.reminderStartedAt && (
-                                                <CircularProgress
-                                                    startTime={task.reminderStartedAt}
-                                                    endTime={task.remindAt}
-                                                    size={20}
-                                                />
-                                            )}
-                                        </div>
-                                    )}
-
-
-                                    <button
-                                        onClick={() => setEditingTask(task)}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: 'var(--text-muted)',
-                                            cursor: 'pointer',
-                                            padding: '4px',
-                                            display: 'flex',
-                                            alignItems: 'center'
-                                        }}
-                                        title="Edit Task"
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                        </svg>
-                                    </button>
-                                    <button
-                                        onClick={() => onDeleteTask(task.id)}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: 'var(--text-muted)',
-                                            cursor: 'pointer',
-                                            padding: '4px',
-                                            display: 'flex',
-                                            alignItems: 'center'
-                                        }}
-                                        title="Delete Task"
-                                    >
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                            <polyline points="3 6 5 6 21 6"></polyline>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                                {task.priority !== 'none' ? `Priority: ${task.priority}` : 'No Priority'} • {task.quadrant?.toUpperCase()}
-                            </div>
+                {groupBy === 'tags' ? (
+                    Object.entries(displayTasks.reduce((groups, task) => {
+                        const taskTags = task.tags && task.tags.length > 0 ? task.tags : ['Untagged'];
+                        taskTags.forEach(tag => {
+                            if (!groups[tag]) groups[tag] = [];
+                            groups[tag].push(task);
+                        });
+                        return groups;
+                    }, {})).map(([tag, groupTasks]) => (
+                        <div key={tag} style={{ marginBottom: '24px' }}>
+                            <h3 style={{
+                                fontSize: '14px',
+                                color: 'var(--text-secondary)',
+                                marginBottom: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                fontWeight: 600
+                            }}>
+                                {tag} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                            </h3>
+                            {groupTasks.map(task => (
+                                <TaskItem
+                                    key={`${tag}-${task.id}`}
+                                    task={task}
+                                    toggleTask={toggleTask}
+                                    setEditingTask={setEditingTask}
+                                    handleSetReminder={handleSetReminder}
+                                    handleDismissReminder={handleDismissReminder}
+                                    onDeleteTask={onDeleteTask}
+                                    getPriorityColor={getPriorityColor}
+                                    formatTimestamp={formatTimestamp}
+                                />
+                            ))}
                         </div>
-                    </div>
-                ))}
+                    ))
+                ) : groupBy === 'date' ? (
+                    (() => {
+                        const buckets = {
+                            'Today': [],
+                            'Next 3 Days': [],
+                            'Next Week': [],
+                            'Upcoming': [],
+                            'No Date': []
+                        };
+
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+
+                        displayTasks.forEach(task => {
+                            if (!task.dueDate) {
+                                buckets['No Date'].push(task);
+                                return;
+                            }
+
+                            const dueDate = new Date(task.dueDate);
+                            dueDate.setHours(0, 0, 0, 0);
+
+                            const diffTime = dueDate - today;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                            if (diffDays <= 0) {
+                                buckets['Today'].push(task);
+                            } else if (diffDays <= 3) {
+                                buckets['Next 3 Days'].push(task);
+                            } else if (diffDays <= 7) {
+                                buckets['Next Week'].push(task);
+                            } else {
+                                buckets['Upcoming'].push(task);
+                            }
+                        });
+
+                        return Object.entries(buckets).map(([bucket, tasks]) => {
+                            if (tasks.length === 0) return null;
+                            return (
+                                <div key={bucket} style={{ marginBottom: '24px' }}>
+                                    <h3 style={{
+                                        fontSize: '14px',
+                                        color: bucket === 'Today' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                                        marginBottom: '12px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px',
+                                        fontWeight: 600
+                                    }}>
+                                        {bucket} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px', color: 'var(--text-primary)' }}>{tasks.length}</span>
+                                    </h3>
+                                    {tasks.map(task => (
+                                        <TaskItem
+                                            key={`${bucket}-${task.id}`}
+                                            task={task}
+                                            toggleTask={toggleTask}
+                                            setEditingTask={setEditingTask}
+                                            handleSetReminder={handleSetReminder}
+                                            handleDismissReminder={handleDismissReminder}
+                                            onDeleteTask={onDeleteTask}
+                                            getPriorityColor={getPriorityColor}
+                                            formatTimestamp={formatTimestamp}
+                                        />
+                                    ))}
+                                </div>
+                            );
+                        });
+                    })()
+                ) : (
+                    displayTasks.map(task => (
+                        <TaskItem
+                            key={task.id}
+                            task={task}
+                            toggleTask={toggleTask}
+                            setEditingTask={setEditingTask}
+                            handleSetReminder={handleSetReminder}
+                            handleDismissReminder={handleDismissReminder}
+                            onDeleteTask={onDeleteTask}
+                            getPriorityColor={getPriorityColor}
+                            formatTimestamp={formatTimestamp}
+                        />
+                    ))
+                )}
             </div>
 
             {editingTask && (

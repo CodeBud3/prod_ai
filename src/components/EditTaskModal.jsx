@@ -5,6 +5,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority || 'none');
     const [dueDate, setDueDate] = useState(task.dueDate || '');
+    const [tags, setTags] = useState(task.tags || []);
+    const [tagInput, setTagInput] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -13,7 +15,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             title,
             description,
             priority,
-            dueDate
+            dueDate,
+            tags
         });
     };
 
@@ -118,6 +121,58 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                     color: 'white'
                                 }}
                             />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Tags</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                            {tags.map(tag => (
+                                <span key={tag} style={{
+                                    background: 'rgba(255,255,255,0.1)',
+                                    padding: '4px 10px',
+                                    borderRadius: '16px',
+                                    fontSize: '12px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                }}>
+                                    #{tag}
+                                    <button
+                                        type="button"
+                                        onClick={() => setTags(tags.filter(t => t !== tag))}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, fontSize: '14px' }}
+                                    >
+                                        ×
+                                    </button>
+                                </span>
+                            ))}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={e => setTagInput(e.target.value)}
+                                    onKeyDown={e => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            if (tagInput.trim()) {
+                                                setTags([...tags, tagInput.trim()]);
+                                                setTagInput('');
+                                            }
+                                        }
+                                    }}
+                                    placeholder="+ Add tag"
+                                    style={{
+                                        background: 'transparent',
+                                        border: '1px dashed rgba(255,255,255,0.2)',
+                                        borderRadius: '16px',
+                                        padding: '4px 10px',
+                                        fontSize: '12px',
+                                        color: 'var(--text-secondary)',
+                                        width: '100px'
+                                    }}
+                                />
+                            </div>
                         </div>
                     </div>
 

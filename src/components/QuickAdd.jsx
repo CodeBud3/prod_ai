@@ -4,6 +4,9 @@ export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
     const [priority, setPriority] = useState('none'); // none, low, medium, high
     const [dueDate, setDueDate] = useState('');
+    const [tags, setTags] = useState([]);
+    const [showTagInput, setShowTagInput] = useState(false);
+    const [tagInput, setTagInput] = useState('');
     const titleInputRef = useRef(null);
 
     const handleSubmit = (e) => {
@@ -13,13 +16,17 @@ export function QuickAdd({ onAdd }) {
         onAdd({
             title: title.trim(),
             priority,
-            dueDate: dueDate || null
+            dueDate: dueDate || null,
+            tags
         });
 
         // Reset and keep focus
         setTitle('');
         setPriority('none');
         setDueDate('');
+        setTags([]);
+        setShowTagInput(false);
+        setTagInput('');
         titleInputRef.current?.focus();
     };
 
@@ -114,6 +121,87 @@ export function QuickAdd({ onAdd }) {
                             width: 'auto'
                         }}
                     />
+                </div>
+
+                {/* Tag Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {tags.map(tag => (
+                        <span key={tag} style={{
+                            background: 'rgba(255,255,255,0.1)',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                        }}>
+                            #{tag}
+                            <button
+                                type="button"
+                                onClick={() => setTags(tags.filter(t => t !== tag))}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, fontSize: '14px' }}
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))}
+
+                    {showTagInput ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <input
+                                type="text"
+                                value={tagInput}
+                                onChange={e => setTagInput(e.target.value)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (tagInput.trim()) {
+                                            setTags([...tags, tagInput.trim()]);
+                                            setTagInput('');
+                                        }
+                                    }
+                                }}
+                                placeholder="Type tag..."
+                                style={{
+                                    background: 'rgba(0,0,0,0.2)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    fontSize: '12px',
+                                    color: 'white',
+                                    width: '80px'
+                                }}
+                                autoFocus
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (tagInput.trim()) setTags([...tags, tagInput.trim()]);
+                                    setTagInput('');
+                                    setShowTagInput(false);
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--accent-success)', cursor: 'pointer' }}
+                            >
+                                ✓
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => setShowTagInput(true)}
+                            style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px dashed rgba(255,255,255,0.2)',
+                                borderRadius: '12px',
+                                padding: '2px 8px',
+                                fontSize: '11px',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            + Tag
+                        </button>
+                    )}
                 </div>
             </div>
             <style>{`
