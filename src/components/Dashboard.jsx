@@ -277,6 +277,13 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
         });
     };
 
+    const setTheme = (theme) => {
+        onUpdateUser({
+            ...user,
+            preferences: { ...user.preferences, theme }
+        });
+    };
+
     const formatTimestamp = (timestamp) => {
         const now = Date.now();
         const diff = now - timestamp;
@@ -337,6 +344,37 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                     Enter Focus Mode
                 </button>
             </header>
+
+            {/* Theme Switcher */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '32px', gap: '8px', background: 'var(--bg-glass)', padding: '4px', borderRadius: '12px', width: 'fit-content', margin: '0 auto 32px auto', border: '1px solid var(--glass-border)' }}>
+                {[
+                    { id: 'dark', icon: '🌙', label: 'Dark' },
+                    { id: 'light', icon: '☀️', label: 'Light' },
+                    { id: 'glass', icon: '🔮', label: 'Glass' }
+                ].map(theme => (
+                    <button
+                        key={theme.id}
+                        onClick={() => setTheme(theme.id)}
+                        style={{
+                            background: (user.preferences.theme || 'dark') === theme.id ? 'var(--accent-primary)' : 'transparent',
+                            color: (user.preferences.theme || 'dark') === theme.id ? 'white' : 'var(--text-secondary)',
+                            border: 'none',
+                            padding: '6px 16px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'all 0.2s'
+                        }}
+                    >
+                        <span>{theme.icon}</span>
+                        {theme.label}
+                    </button>
+                ))}
+            </div>
 
             {/* View Mode Toggle */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>

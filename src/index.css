@@ -3,14 +3,14 @@
     --bg-primary: #0f1115;
     --bg-secondary: #181b21;
     --bg-glass: rgba(24, 27, 33, 0.7);
+    --bg-glass-heavy: rgba(24, 27, 33, 0.95);
 
     --text-primary: #ffffff;
     --text-secondary: #a0a0a0;
     --text-muted: #505050;
 
-    /* Accents - Subtle & Premium */
+    /* Accents */
     --accent-primary: #3b82f6;
-    /* Blue */
     --accent-glow: rgba(59, 130, 246, 0.3);
     --accent-success: #10b981;
     --accent-warning: #f59e0b;
@@ -30,6 +30,50 @@
     /* Animation */
     --transition-fast: 0.2s ease;
     --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Theme Specifics */
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --glass-blur: 12px;
+    --app-bg: radial-gradient(circle at top right, var(--bg-secondary), var(--bg-primary));
+}
+
+[data-theme="light"] {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-glass: rgba(255, 255, 255, 0.8);
+    --bg-glass-heavy: rgba(255, 255, 255, 0.95);
+
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+
+    --accent-primary: #2563eb;
+    --accent-glow: rgba(37, 99, 235, 0.2);
+
+    --glass-border: rgba(0, 0, 0, 0.05);
+    --app-bg: #f1f5f9;
+}
+
+[data-theme="glass"] {
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a1a;
+    --bg-glass: rgba(20, 20, 20, 0.3);
+    --bg-glass-heavy: rgba(10, 10, 10, 0.6);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+
+    --accent-primary: #00f0ff;
+    /* Neon Cyan */
+    --accent-glow: rgba(0, 240, 255, 0.5);
+    --accent-success: #00ff9d;
+    --accent-warning: #ffbd00;
+    --accent-danger: #ff0055;
+
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --glass-blur: 20px;
+    --app-bg: url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop') center/cover no-repeat fixed;
 }
 
 * {
@@ -55,19 +99,21 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    background: radial-gradient(circle at top right, var(--bg-secondary), var(--bg-primary));
+    background: var(--app-bg);
     padding-top: 40px;
     padding-bottom: 40px;
+    transition: background 0.5s ease;
 }
 
 /* Utility Classes */
 .glass-panel {
     background: var(--bg-glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: background 0.3s ease, border-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 .btn-primary {

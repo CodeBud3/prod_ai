@@ -11,7 +11,8 @@ const defaultState = {
     onboarded: false,
     preferences: {
       gamification: false,
-      focusMode: false
+      focusMode: false,
+      theme: 'dark'
     }
   },
   tasks: [],
@@ -27,6 +28,12 @@ function App() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
+
+  // Apply theme
+  useEffect(() => {
+    const theme = state.user.preferences.theme || 'dark';
+    document.body.dataset.theme = theme;
+  }, [state.user.preferences.theme]);
 
   const handleOnboardingComplete = ({ user, tasks }) => {
     setState(prev => ({ ...prev, user, tasks }));
