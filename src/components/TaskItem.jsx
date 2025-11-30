@@ -76,6 +76,24 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                             </div>
                         )}
 
+                        {task.project && (
+                            <div style={{
+                                fontSize: '11px',
+                                background: 'rgba(168, 85, 247, 0.2)',
+                                color: '#c084fc',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                fontWeight: 600,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px'
+                            }}>
+                                📁 {task.project}
+                            </div>
+                        )}
+
                         {task.assignee && (
                             <div style={{
                                 fontSize: '11px',

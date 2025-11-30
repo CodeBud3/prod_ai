@@ -9,6 +9,7 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     const [tagInput, setTagInput] = useState('');
     const [assignee, setAssignee] = useState(task.assignee || '');
     const [followUp, setFollowUp] = useState(task.followUp || { dueAt: null, recurring: false, frequency: 'daily', status: 'pending' });
+    const [project, setProject] = useState(task.project || '');
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -20,7 +21,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             dueDate,
             tags,
             assignee,
-            followUp
+            followUp,
+            project: project.trim() || null
         });
     };
 
@@ -116,6 +118,24 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                 type="date"
                                 value={dueDate}
                                 onChange={e => setDueDate(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    color: 'white'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Project</label>
+                            <input
+                                type="text"
+                                value={project}
+                                onChange={e => setProject(e.target.value)}
+                                placeholder="Project Name"
                                 style={{
                                     width: '100%',
                                     padding: '8px',

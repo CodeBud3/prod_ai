@@ -392,7 +392,8 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                 { id: 'none', label: 'None' },
                                 { id: 'tags', label: 'Tags' },
                                 { id: 'date', label: 'Date' },
-                                { id: 'assignee', label: 'Assignee' }
+                                { id: 'assignee', label: 'Assignee' },
+                                { id: 'project', label: 'Project' }
                             ].map(opt => (
                                 <button
                                     key={opt.id}
@@ -579,6 +580,42 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             {groupTasks.map(task => (
                                 <TaskItem
                                     key={`${assignee}-${task.id}`}
+                                    task={task}
+                                    toggleTask={toggleTask}
+                                    setEditingTask={setEditingTask}
+                                    handleSetReminder={handleSetReminder}
+                                    handleDismissReminder={handleDismissReminder}
+                                    onDeleteTask={onDeleteTask}
+                                    getPriorityColor={getPriorityColor}
+                                    formatTimestamp={formatTimestamp}
+                                />
+                            ))}
+                        </div>
+                    ))
+                ) : groupBy === 'project' ? (
+                    Object.entries(displayTasks.reduce((groups, task) => {
+                        const project = task.project || 'No Project';
+                        if (!groups[project]) groups[project] = [];
+                        groups[project].push(task);
+                        return groups;
+                    }, {})).map(([project, groupTasks]) => (
+                        <div key={project} style={{ marginBottom: '24px' }}>
+                            <h3 style={{
+                                fontSize: '14px',
+                                color: 'var(--text-secondary)',
+                                marginBottom: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                fontWeight: 600
+                            }}>
+                                {project} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                            </h3>
+                            {groupTasks.map(task => (
+                                <TaskItem
+                                    key={`${project}-${task.id}`}
                                     task={task}
                                     toggleTask={toggleTask}
                                     setEditingTask={setEditingTask}

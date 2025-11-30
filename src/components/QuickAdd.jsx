@@ -7,6 +7,7 @@ export function QuickAdd({ onAdd }) {
     const [tags, setTags] = useState([]);
     const [showTagInput, setShowTagInput] = useState(false);
     const [tagInput, setTagInput] = useState('');
+    const [project, setProject] = useState('');
     const titleInputRef = useRef(null);
 
     const handleSubmit = (e) => {
@@ -17,7 +18,8 @@ export function QuickAdd({ onAdd }) {
             title: title.trim(),
             priority,
             dueDate: dueDate || null,
-            tags
+            tags,
+            project: project.trim() || null
         });
 
         // Reset and keep focus
@@ -25,6 +27,7 @@ export function QuickAdd({ onAdd }) {
         setPriority('none');
         setDueDate('');
         setTags([]);
+        setProject('');
         setShowTagInput(false);
         setTagInput('');
         titleInputRef.current?.focus();
@@ -60,6 +63,21 @@ export function QuickAdd({ onAdd }) {
                     placeholder="Add a new task..."
                     style={{ flex: 1, background: 'transparent', border: 'none', padding: '8px', color: 'var(--text-primary)', fontSize: '16px' }}
                     autoFocus
+                />
+                <input
+                    type="text"
+                    value={project}
+                    onChange={(e) => setProject(e.target.value)}
+                    placeholder="Project (opt)"
+                    style={{
+                        width: '120px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: '6px',
+                        padding: '8px',
+                        color: 'var(--text-secondary)',
+                        fontSize: '14px'
+                    }}
                 />
                 <button type="submit" className="btn-primary" style={{ padding: '8px 24px', fontSize: '14px' }}>
                     Add
