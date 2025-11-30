@@ -76,6 +76,34 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                             </div>
                         )}
 
+                        {task.assignee && (
+                            <div style={{
+                                fontSize: '11px',
+                                background: 'rgba(59, 130, 246, 0.2)',
+                                color: '#60a5fa',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}>
+                                👤 {task.assignee}
+                            </div>
+                        )}
+
+                        {task.followUp?.dueAt && (
+                            <div style={{
+                                fontSize: '11px',
+                                color: 'var(--text-secondary)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                title: `Follow up due: ${new Date(task.followUp.dueAt).toLocaleString()}`
+                            }}>
+                                🔔
+                            </div>
+                        )}
+
 
                         {/* Reminder Button/Dropdown */}
                         {task.reminding ? (

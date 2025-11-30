@@ -4,6 +4,7 @@ import { QuickAdd } from './QuickAdd';
 import { EditTaskModal } from './EditTaskModal';
 import { CircularProgress } from './CircularProgress';
 import { TaskItem } from './TaskItem';
+import { NotificationToast } from './NotificationToast';
 
 export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
     const [loading, setLoading] = useState(!plan && tasks.length > 0);
@@ -11,6 +12,8 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
     const [editingTask, setEditingTask] = useState(null);
     const [viewFilter, setViewFilter] = useState('all'); // all, todo, completed
     const [groupBy, setGroupBy] = useState('none'); // none, tags
+    const [viewMode, setViewMode] = useState('my_tasks'); // my_tasks, assigned
+    const [activeNotification, setActiveNotification] = useState(null);
 
     // Check for reminders
     useEffect(() => {
@@ -43,10 +46,35 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                     onUpdatePlan(updatedPlan);
                 }
             }
+            // Check for follow-ups
+            const followUpDue = tasks.find(task => {
+                const isDue = task.followUp?.dueAt &&
+                    task.followUp.dueAt <= now &&
+                    task.followUp.status === 'pending';
+
+                if (!isDue) return false;
+
+                // Filter based on view mode
+                // If in 'my_tasks', do not show notifications for tasks assigned to others
+                if (viewMode === 'my_tasks' && task.assignee) return false;
+
+                // If in 'assigned', prioritize assigned tasks? Or show all?
+                // User only explicitly asked to hide assigned notifications in my_tasks.
+                // But it makes sense to show assigned notifications in assigned view.
+
+                return true;
+            });
+
+            if (followUpDue && !activeNotification) {
+                setActiveNotification({
+                    taskId: followUpDue.id,
+                    message: `Follow up due: ${followUpDue.title} ${followUpDue.assignee ? `(${followUpDue.assignee})` : ''}`
+                });
+            }
         }, 5000); // Check every 5 seconds
 
         return () => clearInterval(interval);
-    }, [tasks, plan, onUpdateTasks, onUpdatePlan]);
+    }, [tasks, plan, onUpdateTasks, onUpdatePlan, activeNotification]);
 
     useEffect(() => {
         if (!plan && tasks.length > 0) {
@@ -132,14 +160,29 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
 
     // View Filtering
     const getFilteredTasks = () => {
+        let filtered = sourceTasks;
+
+        // Filter by View Mode (My Tasks vs Assigned)
+        if (viewMode === 'assigned') {
+            filtered = filtered.filter(t => t.assignee && t.assignee.trim() !== '');
+        } else {
+            // My Tasks: tasks without assignee OR assigned to me (if we had current user name check, but for now just unassigned)
+            // User requirement: "Assigned to others" view. So "My Tasks" implies everything else? 
+            // Or should "My Tasks" be everything? 
+            // Let's make "Assigned" strictly show tasks with an assignee. 
+            // "My Tasks" shows everything for now, or maybe exclude assigned?
+            // "Assigned to others" implies separation. Let's exclude assigned from "My Tasks" to make it distinct.
+            filtered = filtered.filter(t => !t.assignee || t.assignee.trim() === '');
+        }
+
         switch (viewFilter) {
             case 'todo':
-                return sourceTasks.filter(t => t.status !== 'done');
+                return filtered.filter(t => t.status !== 'done');
             case 'completed':
-                return sourceTasks.filter(t => t.status === 'done');
+                return filtered.filter(t => t.status === 'done');
             case 'all':
             default:
-                return sourceTasks;
+                return filtered;
         }
     };
 
@@ -270,6 +313,46 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 </button>
             </header>
 
+            {/* View Mode Toggle */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
+                <button
+                    onClick={() => setViewMode('my_tasks')}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: viewMode === 'my_tasks' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '8px 0',
+                        position: 'relative'
+                    }}
+                >
+                    My Tasks
+                    {viewMode === 'my_tasks' && (
+                        <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
+                    )}
+                </button>
+                <button
+                    onClick={() => setViewMode('assigned')}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        color: viewMode === 'assigned' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        padding: '8px 0',
+                        position: 'relative'
+                    }}
+                >
+                    Assigned to Others
+                    {viewMode === 'assigned' && (
+                        <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
+                    )}
+                </button>
+            </div>
+
             <QuickAdd onAdd={handleAddTask} />
 
             {/* View Filter and Sort Controls */}
@@ -308,7 +391,8 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             {[
                                 { id: 'none', label: 'None' },
                                 { id: 'tags', label: 'Tags' },
-                                { id: 'date', label: 'Date' }
+                                { id: 'date', label: 'Date' },
+                                { id: 'assignee', label: 'Assignee' }
                             ].map(opt => (
                                 <button
                                     key={opt.id}
@@ -471,6 +555,42 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             );
                         });
                     })()
+                ) : groupBy === 'assignee' ? (
+                    Object.entries(displayTasks.reduce((groups, task) => {
+                        const assignee = task.assignee || 'Unassigned';
+                        if (!groups[assignee]) groups[assignee] = [];
+                        groups[assignee].push(task);
+                        return groups;
+                    }, {})).map(([assignee, groupTasks]) => (
+                        <div key={assignee} style={{ marginBottom: '24px' }}>
+                            <h3 style={{
+                                fontSize: '14px',
+                                color: 'var(--text-secondary)',
+                                marginBottom: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                fontWeight: 600
+                            }}>
+                                {assignee} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                            </h3>
+                            {groupTasks.map(task => (
+                                <TaskItem
+                                    key={`${assignee}-${task.id}`}
+                                    task={task}
+                                    toggleTask={toggleTask}
+                                    setEditingTask={setEditingTask}
+                                    handleSetReminder={handleSetReminder}
+                                    handleDismissReminder={handleDismissReminder}
+                                    onDeleteTask={onDeleteTask}
+                                    getPriorityColor={getPriorityColor}
+                                    formatTimestamp={formatTimestamp}
+                                />
+                            ))}
+                        </div>
+                    ))
                 ) : (
                     displayTasks.map(task => (
                         <TaskItem
@@ -493,6 +613,42 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                     task={editingTask}
                     onSave={handleSaveTask}
                     onCancel={() => setEditingTask(null)}
+                />
+            )}
+
+            {activeNotification && (
+                <NotificationToast
+                    notification={activeNotification}
+                    onDismiss={() => setActiveNotification(null)}
+                    onSnooze={() => {
+                        // Snooze for 1 hour
+                        const task = tasks.find(t => t.id === activeNotification.taskId);
+                        if (task) {
+                            const updatedTask = {
+                                ...task,
+                                followUp: {
+                                    ...task.followUp,
+                                    dueAt: Date.now() + 60 * 60 * 1000
+                                }
+                            };
+                            onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                        }
+                        setActiveNotification(null);
+                    }}
+                    onComplete={() => {
+                        const task = tasks.find(t => t.id === activeNotification.taskId);
+                        if (task) {
+                            const updatedTask = {
+                                ...task,
+                                followUp: {
+                                    ...task.followUp,
+                                    status: 'completed'
+                                }
+                            };
+                            onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                        }
+                        setActiveNotification(null);
+                    }}
                 />
             )}
         </div>

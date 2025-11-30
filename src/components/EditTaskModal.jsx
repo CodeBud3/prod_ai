@@ -7,6 +7,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     const [dueDate, setDueDate] = useState(task.dueDate || '');
     const [tags, setTags] = useState(task.tags || []);
     const [tagInput, setTagInput] = useState('');
+    const [assignee, setAssignee] = useState(task.assignee || '');
+    const [followUp, setFollowUp] = useState(task.followUp || { dueAt: null, recurring: false, frequency: 'daily', status: 'pending' });
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -16,7 +18,9 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             description,
             priority,
             dueDate,
-            tags
+            tags,
+            assignee,
+            followUp
         });
     };
 
@@ -172,6 +176,107 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                         width: '100px'
                                     }}
                                 />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Assign To</label>
+                            <input
+                                type="text"
+                                value={assignee}
+                                onChange={e => setAssignee(e.target.value)}
+                                placeholder="Name or Team"
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    color: 'white'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Follow Up</label>
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                                <select
+                                    onChange={(e) => {
+                                        if (!e.target.value) return;
+                                        const now = Date.now();
+                                        let dueAt = now;
+                                        if (e.target.value === '1h') dueAt += 60 * 60 * 1000;
+                                        if (e.target.value === '24h') dueAt += 24 * 60 * 60 * 1000;
+                                        if (e.target.value === '1w') dueAt += 7 * 24 * 60 * 60 * 1000;
+
+                                        setFollowUp({
+                                            ...followUp,
+                                            dueAt,
+                                            status: 'pending'
+                                        });
+                                    }}
+                                    style={{
+                                        flex: 1,
+                                        padding: '8px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    <option value="">Quick Set...</option>
+                                    <option value="1h">In 1 Hour</option>
+                                    <option value="24h">Tomorrow</option>
+                                    <option value="1w">Next Week</option>
+                                </select>
+                                <input
+                                    type="datetime-local"
+                                    value={followUp.dueAt ? new Date(followUp.dueAt - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            setFollowUp({
+                                                ...followUp,
+                                                dueAt: new Date(e.target.value).getTime(),
+                                                status: 'pending'
+                                            });
+                                        }
+                                    }}
+                                    style={{
+                                        padding: '8px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        fontSize: '12px',
+                                        width: '140px'
+                                    }}
+                                />
+                            </div>
+
+                            {followUp.dueAt && (
+                                <div style={{ fontSize: '11px', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span>Due: {new Date(followUp.dueAt).toLocaleString()}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFollowUp({ ...followUp, dueAt: null })}
+                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={followUp.recurring}
+                                    onChange={e => setFollowUp({ ...followUp, recurring: e.target.checked })}
+                                    id="recurring"
+                                />
+                                <label htmlFor="recurring" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Recurring?</label>
                             </div>
                         </div>
                     </div>
