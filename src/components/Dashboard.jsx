@@ -151,6 +151,23 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
         }
     };
 
+    const handleSetFocus = (taskId, color) => {
+        const updatedTasks = tasks.map(t =>
+            t.id === taskId ? { ...t, focusColor: color } : t
+        );
+        onUpdateTasks(updatedTasks);
+
+        if (plan) {
+            const updatedPlan = {
+                ...plan,
+                tasks: plan.tasks.map(t =>
+                    t.id === taskId ? { ...t, focusColor: color } : t
+                )
+            };
+            onUpdatePlan(updatedPlan);
+        }
+    };
+
     if (loading) {
         return (
             <div className="glass-panel fade-in" style={{ padding: '40px', textAlign: 'center' }}>
@@ -225,7 +242,8 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 return {
                     ...t,
                     status: isDone ? 'todo' : 'done',
-                    completedAt: isDone ? null : Date.now()
+                    completedAt: isDone ? null : Date.now(),
+                    focusColor: isDone ? t.focusColor : null // Clear focus on completion
                 };
             }
             return t;
@@ -241,7 +259,8 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                         return {
                             ...t,
                             status: isDone ? 'todo' : 'done',
-                            completedAt: isDone ? null : Date.now()
+                            completedAt: isDone ? null : Date.now(),
+                            focusColor: isDone ? t.focusColor : null // Clear focus on completion
                         };
                     }
                     return t;
@@ -556,6 +575,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                             onDeleteTask={onDeleteTask}
                                             getPriorityColor={getPriorityColor}
                                             formatTimestamp={formatTimestamp}
+                                            handleSetFocus={handleSetFocus}
                                         />
                                     ))}
                                 </div>
@@ -646,6 +666,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             onDeleteTask={onDeleteTask}
                             getPriorityColor={getPriorityColor}
                             formatTimestamp={formatTimestamp}
+                            handleSetFocus={handleSetFocus}
                         />
                     ))
                 )}

@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CircularProgress } from './CircularProgress';
 
-export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp }) {
+export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) {
+    const focusColors = {
+        purple: '#a855f7',
+        grey: '#94a3b8',
+        red: '#ef4444',
+        orange: '#f97316',
+        yellow: '#eab308'
+    };
+
+    const activeFocusColor = task.focusColor ? focusColors[task.focusColor] : null;
+    const [showFocusPicker, setShowFocusPicker] = useState(false);
+
     return (
         <div
             className={`task-item ${task.status === 'done' ? 'done' : ''} ${task.reminding ? 'reminding' : ''}`}
@@ -10,12 +21,14 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 display: 'flex',
                 alignItems: 'flex-start',
                 padding: '16px',
-                background: 'rgba(255,255,255,0.03)',
+                background: activeFocusColor ? `linear-gradient(90deg, ${activeFocusColor}15 0%, rgba(255,255,255,0.03) 100%)` : 'rgba(255,255,255,0.03)',
                 marginBottom: '8px',
                 borderRadius: 'var(--radius-md)',
-                borderLeft: `4px solid ${getPriorityColor(task.priority) || 'var(--text-muted)'}`,
+                borderLeft: activeFocusColor ? `6px solid ${activeFocusColor}` : `4px solid ${getPriorityColor(task.priority) || 'var(--text-muted)'}`,
                 cursor: 'default',
-                position: 'relative'
+                position: 'relative',
+                boxShadow: activeFocusColor ? `0 0 15px ${activeFocusColor}20` : 'none',
+                transition: 'all 0.3s ease'
             }}
         >
             <input
@@ -180,6 +193,79 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                                 )}
                             </div>
                         )}
+
+                        {/* Focus Pointer Control */}
+                        <div className="focus-control" style={{ position: 'relative' }}>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowFocusPicker(!showFocusPicker);
+                                }}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: activeFocusColor || 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    fontSize: '14px',
+                                    opacity: activeFocusColor || showFocusPicker ? 1 : 0.5
+                                }}
+                                title="Set Focus Pointer"
+                            >
+                                ➤
+                            </button>
+                            {showFocusPicker && (
+                                <div className="focus-picker" style={{
+                                    position: 'absolute',
+                                    top: '100%',
+                                    right: 0,
+                                    background: 'rgba(24, 27, 33, 0.95)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    padding: '8px',
+                                    display: 'flex',
+                                    gap: '6px',
+                                    zIndex: 100,
+                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                    backdropFilter: 'blur(12px)'
+                                }}>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSetFocus(task.id, null);
+                                            setShowFocusPicker(false);
+                                        }}
+                                        title="None"
+                                        style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid #555', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#aaa' }}
+                                    >
+                                        ✕
+                                    </button>
+                                    {Object.entries(focusColors).map(([name, color]) => (
+                                        <button
+                                            key={name}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSetFocus(task.id, name);
+                                                setShowFocusPicker(false);
+                                            }}
+                                            title={name}
+                                            style={{
+                                                width: '20px',
+                                                height: '20px',
+                                                borderRadius: '50%',
+                                                border: 'none',
+                                                background: color,
+                                                cursor: 'pointer',
+                                                boxShadow: task.focusColor === name ? '0 0 0 2px white' : 'none',
+                                                transition: 'transform 0.1s'
+                                            }}
+                                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+                        </div>
 
 
                         <button
