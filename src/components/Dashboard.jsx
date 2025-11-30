@@ -4,7 +4,7 @@ import { QuickAdd } from './QuickAdd';
 import { EditTaskModal } from './EditTaskModal';
 import { CircularProgress } from './CircularProgress';
 import { TaskItem } from './TaskItem';
-import { NotificationToast } from './NotificationToast';
+import { NotificationPanel } from './NotificationPanel';
 
 export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
     const [loading, setLoading] = useState(!plan && tasks.length > 0);
@@ -13,7 +13,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
     const [viewFilter, setViewFilter] = useState('all'); // all, todo, completed
     const [groupBy, setGroupBy] = useState('none'); // none, tags
     const [viewMode, setViewMode] = useState('my_tasks'); // my_tasks, assigned
-    const [activeNotification, setActiveNotification] = useState(null);
+    const [notifications, setNotifications] = useState([]);
 
     // Check for reminders
     useEffect(() => {
@@ -47,7 +47,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 }
             }
             // Check for follow-ups
-            const followUpDue = tasks.find(task => {
+            const followUpDueTasks = tasks.filter(task => {
                 const isDue = task.followUp?.dueAt &&
                     task.followUp.dueAt <= now &&
                     task.followUp.status === 'pending';
@@ -55,26 +55,32 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 if (!isDue) return false;
 
                 // Filter based on view mode
-                // If in 'my_tasks', do not show notifications for tasks assigned to others
                 if (viewMode === 'my_tasks' && task.assignee) return false;
-
-                // If in 'assigned', prioritize assigned tasks? Or show all?
-                // User only explicitly asked to hide assigned notifications in my_tasks.
-                // But it makes sense to show assigned notifications in assigned view.
 
                 return true;
             });
 
-            if (followUpDue && !activeNotification) {
-                setActiveNotification({
-                    taskId: followUpDue.id,
-                    message: `Follow up due: ${followUpDue.title} ${followUpDue.assignee ? `(${followUpDue.assignee})` : ''}`
+            if (followUpDueTasks.length > 0) {
+                setNotifications(prev => {
+                    const newNotifications = [...prev];
+                    followUpDueTasks.forEach(task => {
+                        // Check if already notified
+                        if (!newNotifications.some(n => n.taskId === task.id)) {
+                            newNotifications.push({
+                                id: Date.now() + Math.random(),
+                                taskId: task.id,
+                                message: `${task.title} ${task.assignee ? `(${task.assignee})` : ''}`,
+                                timestamp: Date.now()
+                            });
+                        }
+                    });
+                    return newNotifications;
                 });
             }
         }, 5000); // Check every 5 seconds
 
         return () => clearInterval(interval);
-    }, [tasks, plan, onUpdateTasks, onUpdatePlan, activeNotification]);
+    }, [tasks, plan, onUpdateTasks, onUpdatePlan, viewMode]);
 
     useEffect(() => {
         if (!plan && tasks.length > 0) {
@@ -653,41 +659,41 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 />
             )}
 
-            {activeNotification && (
-                <NotificationToast
-                    notification={activeNotification}
-                    onDismiss={() => setActiveNotification(null)}
-                    onSnooze={() => {
-                        // Snooze for 1 hour
-                        const task = tasks.find(t => t.id === activeNotification.taskId);
-                        if (task) {
-                            const updatedTask = {
-                                ...task,
-                                followUp: {
-                                    ...task.followUp,
-                                    dueAt: Date.now() + 60 * 60 * 1000
-                                }
-                            };
-                            onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
-                        }
-                        setActiveNotification(null);
-                    }}
-                    onComplete={() => {
-                        const task = tasks.find(t => t.id === activeNotification.taskId);
-                        if (task) {
-                            const updatedTask = {
-                                ...task,
-                                followUp: {
-                                    ...task.followUp,
-                                    status: 'completed'
-                                }
-                            };
-                            onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
-                        }
-                        setActiveNotification(null);
-                    }}
-                />
-            )}
+            <NotificationPanel
+                notifications={notifications}
+                onDismiss={(notificationId) => {
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                }}
+                onSnooze={(taskId, notificationId) => {
+                    // Snooze for 1 hour
+                    const task = tasks.find(t => t.id === taskId);
+                    if (task) {
+                        const updatedTask = {
+                            ...task,
+                            followUp: {
+                                ...task.followUp,
+                                dueAt: Date.now() + 60 * 60 * 1000
+                            }
+                        };
+                        onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                    }
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                }}
+                onComplete={(taskId, notificationId) => {
+                    const task = tasks.find(t => t.id === taskId);
+                    if (task) {
+                        const updatedTask = {
+                            ...task,
+                            followUp: {
+                                ...task.followUp,
+                                status: 'completed'
+                            }
+                        };
+                        onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                    }
+                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                }}
+            />
         </div>
     );
 }
