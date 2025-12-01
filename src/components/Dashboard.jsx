@@ -6,6 +6,7 @@ import { CircularProgress } from './CircularProgress';
 import { TaskItem } from './TaskItem';
 import { NotificationPanel } from './NotificationPanel';
 import { FunnyTooltip } from './FunnyTooltip';
+import { PrioritizationStudio } from './PrioritizationStudio';
 
 export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
     const [loading, setLoading] = useState(!plan && tasks.length > 0);
@@ -15,6 +16,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
     const [groupBy, setGroupBy] = useState('none'); // none, tags
     const [viewMode, setViewMode] = useState('my_tasks'); // my_tasks, assigned
     const [notifications, setNotifications] = useState([]);
+    const [showPrioritization, setShowPrioritization] = useState(false);
 
     // Check for reminders
     useEffect(() => {
@@ -343,6 +345,13 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 </div>
                 <button onClick={() => toggleFocusMode(true)} className="btn-primary" disabled={!displayTasks.some(t => t.status !== 'done')}>
                     Enter Focus Mode
+                </button>
+                <button
+                    onClick={() => setShowPrioritization(true)}
+                    className="btn-secondary"
+                    style={{ marginLeft: '12px' }}
+                >
+                    Help me prioritize
                 </button>
             </header>
 
@@ -766,6 +775,14 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                     setNotifications(prev => prev.filter(n => n.id !== notificationId));
                 }}
             />
+
+            {showPrioritization && (
+                <PrioritizationStudio
+                    tasks={tasks}
+                    onUpdateTasks={onUpdateTasks}
+                    onClose={() => setShowPrioritization(false)}
+                />
+            )}
         </div>
     );
 }

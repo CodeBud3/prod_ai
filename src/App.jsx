@@ -44,7 +44,20 @@ function App() {
   };
 
   const handleUpdateTasks = (tasks) => {
-    setState(prev => ({ ...prev, tasks }));
+    setState(prev => {
+      let newPlan = prev.plan;
+      if (newPlan) {
+        // Sync tasks in the plan with the updated tasks list
+        newPlan = {
+          ...newPlan,
+          tasks: newPlan.tasks.map(planTask => {
+            const updatedTask = tasks.find(t => t.id === planTask.id);
+            return updatedTask || planTask;
+          })
+        };
+      }
+      return { ...prev, tasks, plan: newPlan };
+    });
   };
 
   const handleUpdatePlan = (plan) => {
