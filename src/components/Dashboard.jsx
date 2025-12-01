@@ -5,6 +5,7 @@ import { EditTaskModal } from './EditTaskModal';
 import { CircularProgress } from './CircularProgress';
 import { TaskItem } from './TaskItem';
 import { NotificationPanel } from './NotificationPanel';
+import { FunnyTooltip } from './FunnyTooltip';
 
 export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
     const [loading, setLoading] = useState(!plan && tasks.length > 0);
@@ -370,50 +371,58 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             transition: 'all 0.2s'
                         }}
                     >
-                        <span>{theme.icon}</span>
-                        {theme.label}
+                        <FunnyTooltip context="theme">
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>{theme.icon}</span>
+                                {theme.label}
+                            </span>
+                        </FunnyTooltip>
                     </button>
                 ))}
             </div>
 
             {/* View Mode Toggle */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '16px' }}>
-                <button
-                    onClick={() => setViewMode('my_tasks')}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: viewMode === 'my_tasks' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        fontSize: '16px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        padding: '8px 0',
-                        position: 'relative'
-                    }}
-                >
-                    My Tasks
-                    {viewMode === 'my_tasks' && (
-                        <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
-                    )}
-                </button>
-                <button
-                    onClick={() => setViewMode('assigned')}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: viewMode === 'assigned' ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                        fontSize: '16px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        padding: '8px 0',
-                        position: 'relative'
-                    }}
-                >
-                    Assigned to Others
-                    {viewMode === 'assigned' && (
-                        <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
-                    )}
-                </button>
+                <FunnyTooltip context="default">
+                    <button
+                        onClick={() => setViewMode('my_tasks')}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: viewMode === 'my_tasks' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: '8px 0',
+                            position: 'relative'
+                        }}
+                    >
+                        My Tasks
+                        {viewMode === 'my_tasks' && (
+                            <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
+                        )}
+                    </button>
+                </FunnyTooltip>
+                <FunnyTooltip context="default">
+                    <button
+                        onClick={() => setViewMode('assigned')}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: viewMode === 'assigned' ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            padding: '8px 0',
+                            position: 'relative'
+                        }}
+                    >
+                        Assigned to Others
+                        {viewMode === 'assigned' && (
+                            <div style={{ position: 'absolute', bottom: -17, left: 0, right: 0, height: '2px', background: 'var(--accent-primary)' }} />
+                        )}
+                    </button>
+                </FunnyTooltip>
             </div>
 
             <QuickAdd onAdd={handleAddTask} />
@@ -450,62 +459,66 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                     {/* Grouping */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Group:</span>
-                        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
-                            {[
-                                { id: 'none', label: 'None' },
-                                { id: 'tags', label: 'Tags' },
-                                { id: 'date', label: 'Date' },
-                                { id: 'assignee', label: 'Assignee' },
-                                { id: 'project', label: 'Project' }
-                            ].map(opt => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setGroupBy(opt.id)}
-                                    style={{
-                                        background: groupBy === opt.id ? 'var(--accent-primary)' : 'transparent',
-                                        color: groupBy === opt.id ? 'white' : 'var(--text-secondary)',
-                                        border: 'none',
-                                        padding: '4px 12px',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
+                        <FunnyTooltip context="group">
+                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
+                                {[
+                                    { id: 'none', label: 'None' },
+                                    { id: 'tags', label: 'Tags' },
+                                    { id: 'date', label: 'Date' },
+                                    { id: 'assignee', label: 'Assignee' },
+                                    { id: 'project', label: 'Project' }
+                                ].map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setGroupBy(opt.id)}
+                                        style={{
+                                            background: groupBy === opt.id ? 'var(--accent-primary)' : 'transparent',
+                                            color: groupBy === opt.id ? 'white' : 'var(--text-secondary)',
+                                            border: 'none',
+                                            padding: '4px 12px',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </FunnyTooltip>
                     </div>
 
                     {/* Sorting */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Sort:</span>
-                        <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
-                            {[
-                                { id: 'smart', label: 'Smart' },
-                                { id: 'priority', label: 'Priority' },
-                                { id: 'due_date', label: 'Due' },
-                                { id: 'date_added', label: 'Added' }
-                            ].map(opt => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setSortBy(opt.id)}
-                                    style={{
-                                        background: sortBy === opt.id ? 'var(--accent-primary)' : 'transparent',
-                                        color: sortBy === opt.id ? 'white' : 'var(--text-secondary)',
-                                        border: 'none',
-                                        padding: '4px 12px',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.2s'
-                                    }}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
+                        <FunnyTooltip context="sort">
+                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
+                                {[
+                                    { id: 'smart', label: 'Smart' },
+                                    { id: 'priority', label: 'Priority' },
+                                    { id: 'due_date', label: 'Due' },
+                                    { id: 'date_added', label: 'Added' }
+                                ].map(opt => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setSortBy(opt.id)}
+                                        style={{
+                                            background: sortBy === opt.id ? 'var(--accent-primary)' : 'transparent',
+                                            color: sortBy === opt.id ? 'white' : 'var(--text-secondary)',
+                                            border: 'none',
+                                            padding: '4px 12px',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </FunnyTooltip>
                     </div>
                 </div>
             </div>

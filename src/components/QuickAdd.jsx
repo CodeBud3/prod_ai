@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { FunnyTooltip } from './FunnyTooltip';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
@@ -79,9 +80,11 @@ export function QuickAdd({ onAdd }) {
                         fontSize: '14px'
                     }}
                 />
-                <button type="submit" className="btn-primary" style={{ padding: '8px 24px', fontSize: '14px' }}>
-                    Add
-                </button>
+                <FunnyTooltip context="add">
+                    <button type="submit" className="btn-primary" style={{ padding: '8px 24px', fontSize: '14px' }}>
+                        Add
+                    </button>
+                </FunnyTooltip>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
