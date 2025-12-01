@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { CircularProgress } from './CircularProgress';
+import confetti from 'canvas-confetti';
+import { MotivationalPopup } from './MotivationalPopup';
 
 export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) {
     const focusColors = {
@@ -12,6 +14,46 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
     const activeFocusColor = task.focusColor ? focusColors[task.focusColor] : null;
     const [showFocusPicker, setShowFocusPicker] = useState(false);
+    const [motivationalMessage, setMotivationalMessage] = useState(null);
+
+    const handleToggle = (e) => {
+        const isCompleting = task.status !== 'done';
+
+        if (isCompleting) {
+            // Confetti explosion from the checkbox position
+            const rect = e.target.getBoundingClientRect();
+            const x = (rect.left + rect.width / 2) / window.innerWidth;
+            const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+            confetti({
+                particleCount: 30,
+                spread: 40,
+                startVelocity: 45,
+                gravity: 1.5,
+                decay: 0.85,
+                scalar: 0.6,
+                origin: { x, y },
+                colors: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                disableForReducedMotion: true,
+                zIndex: 1000,
+            });
+
+            // Motivational Message Logic
+            const messages = {
+                high: ['Awesome!', 'Major Win!', 'Crushed It!', 'On Fire! 🔥'],
+                medium: ['Great Job!', 'Nice Work!', 'Keep it up!', 'Well Done!'],
+                low: ['Good!', 'Done!', 'Check!', 'Nice!'],
+                none: ['Good!', 'Done!', 'Check!', 'Nice!']
+            };
+
+            const priority = task.priority || 'none';
+            const pool = messages[priority] || messages.none;
+            const randomMsg = pool[Math.floor(Math.random() * pool.length)];
+            setMotivationalMessage(randomMsg);
+        }
+
+        toggleTask(task.id);
+    };
 
     return (
         <div
@@ -31,12 +73,20 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 transition: 'all 0.3s ease'
             }}
         >
-            <input
-                type="checkbox"
-                checked={task.status === 'done'}
-                onChange={() => toggleTask(task.id)}
-                style={{ width: '20px', height: '20px', marginRight: '16px', marginTop: '4px', cursor: 'pointer' }}
-            />
+            <div style={{ position: 'relative' }}>
+                <input
+                    type="checkbox"
+                    checked={task.status === 'done'}
+                    onChange={handleToggle}
+                    style={{ width: '20px', height: '20px', marginRight: '16px', marginTop: '4px', cursor: 'pointer' }}
+                />
+                {motivationalMessage && (
+                    <MotivationalPopup
+                        message={motivationalMessage}
+                        onComplete={() => setMotivationalMessage(null)}
+                    />
+                )}
+            </div>
 
             <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
