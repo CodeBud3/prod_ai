@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { FunnyTooltip } from './FunnyTooltip';
+import { FunnyTooltip } from '../../../components/ui';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
@@ -92,32 +92,33 @@ export function QuickAdd({ onAdd }) {
                 <div role="radiogroup" aria-label="Priority" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '4px' }}>Priority:</span>
                     {priorityConfig.map(p => (
-                        <button
-                            key={p.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={priority === p.id}
-                            aria-label={p.label}
-                            onClick={() => setPriority(p.id)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    setPriority(p.id);
-                                }
-                            }}
-                            style={{
-                                width: '32px',
-                                height: '32px',
-                                borderRadius: '50%',
-                                border: priority === p.id ? '3px solid white' : '2px solid transparent',
-                                background: p.color,
-                                cursor: 'pointer',
-                                padding: 0,
-                                transition: 'transform 0.2s',
-                                outlineOffset: '4px'
-                            }}
-                            className="priority-btn"
-                        />
+                        <FunnyTooltip key={p.id} context="priority" content={p.label}>
+                            <button
+                                type="button"
+                                role="radio"
+                                aria-checked={priority === p.id}
+                                aria-label={p.label}
+                                onClick={() => setPriority(p.id)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setPriority(p.id);
+                                    }
+                                }}
+                                style={{
+                                    width: '32px',
+                                    height: '32px',
+                                    borderRadius: '50%',
+                                    border: priority === p.id ? '3px solid white' : '2px solid transparent',
+                                    background: p.color,
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    transition: 'transform 0.2s',
+                                    outlineOffset: '4px'
+                                }}
+                                className="priority-btn"
+                            />
+                        </FunnyTooltip>
                     ))}
                 </div>
 

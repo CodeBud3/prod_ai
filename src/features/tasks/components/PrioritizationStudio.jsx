@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { DndContext, DragOverlay, useDraggable, useDroppable, closestCenter } from '@dnd-kit/core';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { FunnyTooltip } from './FunnyTooltip';
+import { FunnyTooltip } from '../../../components/ui';
 import { TaskItem } from './TaskItem';
 import { EditTaskModal } from './EditTaskModal';
+import { selectAllTasks } from '../tasksSelectors';
+import { updateTask, bulkUpdateTasks } from '../tasksSlice';
 
 // Wrapper to make TaskItem draggable
 function DraggableTaskItem({ task, isOverlay, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) {
@@ -87,19 +90,22 @@ function Quadrant({ id, title, description, tasks, color, toggleTask, setEditing
 }
 
 function getPriorityColor(p) {
-    if (p === 'high') return 'var(--accent-danger)';
-    if (p === 'medium') return '#f97316';
-    if (p === 'low') return 'var(--accent-warning)';
+    if (p === 'critical') return 'var(--accent-danger)';
+    if (p === 'high') return '#f97316';
+    if (p === 'medium') return '#f9f116ff';
+    if (p === 'low') return '#94a3b8'
     return 'var(--text-muted)';
 }
 
-export function PrioritizationStudio({ tasks, onUpdateTasks, onClose }) {
-    const [framework, setFramework] = useState('eisenhower'); // eisenhower, impact_effort
+export function PrioritizationStudio({ onClose }) {
+    const dispatch = useDispatch();
+    const tasks = useSelector(selectAllTasks);
+
+    const [framework, setFramework] = useState('eisenhower');
     const [activeId, setActiveId] = useState(null);
     const [draggedTask, setDraggedTask] = useState(null);
     const [editingTask, setEditingTask] = useState(null);
 
-    // Filter out completed tasks for prioritization
     const activeTasks = tasks.filter(t => t.status !== 'done');
 
     // Helper to get quadrant for a task based on framework
@@ -112,8 +118,9 @@ export function PrioritizationStudio({ tasks, onUpdateTasks, onClose }) {
             }
 
             // Fallback to priority mapping
-            if (task.priority === 'high') return 'q1'; // Do First
+            if (task.priority === 'critical') return 'q1'; // Do First
             if (task.priority === 'medium') return 'q2'; // Schedule (Default for Medium)
+            if (task.priority === 'high') return 'q3'; // Deligate
             if (task.priority === 'low') return 'q4'; // Eliminate (Default for Low)
 
             return 'uncategorized';
@@ -123,53 +130,50 @@ export function PrioritizationStudio({ tasks, onUpdateTasks, onClose }) {
     };
 
     const toggleTask = (id) => {
-        const updatedTasks = tasks.map(t => {
-            if (t.id === id) {
-                const isDone = t.status === 'done';
-                return {
-                    ...t,
+        const task = tasks.find(t => t.id === id);
+        if (task) {
+            const isDone = task.status === 'done';
+            dispatch(updateTask({
+                id,
+                updates: {
                     status: isDone ? 'todo' : 'done',
                     completedAt: isDone ? null : Date.now(),
-                    focusColor: isDone ? t.focusColor : null
-                };
-            }
-            return t;
-        });
-        onUpdateTasks(updatedTasks);
+                    focusColor: isDone ? task.focusColor : null
+                }
+            }));
+        }
     };
 
     const handleDeleteTask = (taskId) => {
-        const updatedTasks = tasks.filter(t => t.id !== taskId);
-        onUpdateTasks(updatedTasks);
+        dispatch(updateTask({ id: taskId, updates: { deleted: true } }));
     };
 
     const handleSaveTask = (updatedTask) => {
-        const updatedTasks = tasks.map(t => t.id === updatedTask.id ? updatedTask : t);
-        onUpdateTasks(updatedTasks);
+        dispatch(updateTask({ id: updatedTask.id, updates: updatedTask }));
         setEditingTask(null);
     };
 
     const handleSetReminder = (taskId, minutes) => {
         const now = Date.now();
         const remindAt = now + (minutes * 60 * 1000);
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, remindAt, reminderStartedAt: now } : t
-        );
-        onUpdateTasks(updatedTasks);
+        dispatch(updateTask({
+            id: taskId,
+            updates: { remindAt, reminderStartedAt: now }
+        }));
     };
 
     const handleDismissReminder = (taskId) => {
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, reminding: false, remindAt: null, reminderStartedAt: null } : t
-        );
-        onUpdateTasks(updatedTasks);
+        dispatch(updateTask({
+            id: taskId,
+            updates: { reminding: false, remindAt: null, reminderStartedAt: null }
+        }));
     };
 
     const handleSetFocus = (taskId, color) => {
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, focusColor: color } : t
-        );
-        onUpdateTasks(updatedTasks);
+        dispatch(updateTask({
+            id: taskId,
+            updates: { focusColor: color }
+        }));
     };
 
     const formatTimestamp = (timestamp) => {
@@ -198,31 +202,25 @@ export function PrioritizationStudio({ tasks, onUpdateTasks, onClose }) {
             const taskId = active.id;
             const newQuadrant = over.id;
 
-            // Update task data
-            const updatedTasks = tasks.map(t => {
-                if (t.id === taskId) {
-                    if (framework === 'eisenhower') {
-                        // Auto-update priority based on Eisenhower
-                        let newPriority = t.priority;
-                        let newEisenhowerQuadrant = newQuadrant;
+            // Prepare updates
+            const updates = {};
 
-                        if (newQuadrant === 'q1') newPriority = 'high';
-                        else if (newQuadrant === 'q2') newPriority = 'medium';
-                        else if (newQuadrant === 'q3') newPriority = 'medium';
-                        else if (newQuadrant === 'q4') newPriority = 'low';
-                        else if (newQuadrant === 'uncategorized') {
-                            newPriority = 'none'; // Clear priority when moving to uncategorized
-                            newEisenhowerQuadrant = null; // Clear quadrant
-                        }
-
-                        return { ...t, eisenhowerQuadrant: newEisenhowerQuadrant, priority: newPriority };
-                    } else {
-                        return { ...t, impactEffortQuadrant: newQuadrant };
-                    }
+            if (framework === 'eisenhower') {
+                if (newQuadrant === 'q1') updates.priority = 'critical';
+                else if (newQuadrant === 'q2') updates.priority = 'medium';
+                else if (newQuadrant === 'q3') updates.priority = 'high';
+                else if (newQuadrant === 'q4') updates.priority = 'low';
+                else if (newQuadrant === 'uncategorized') {
+                    updates.priority = 'none';
+                    updates.eisenhowerQuadrant = null;
+                } else {
+                    updates.eisenhowerQuadrant = newQuadrant;
                 }
-                return t;
-            });
-            onUpdateTasks(updatedTasks);
+            } else {
+                updates.impactEffortQuadrant = newQuadrant;
+            }
+
+            dispatch(updateTask({ id: taskId, updates }));
         }
 
         setActiveId(null);
@@ -234,7 +232,7 @@ export function PrioritizationStudio({ tasks, onUpdateTasks, onClose }) {
             title: 'Eisenhower Matrix',
             quadrants: [
                 { id: 'q1', title: 'Do First', description: 'Urgent & Important', color: '#ef4444' }, // Red
-                { id: 'q2', title: 'Schedule', description: 'Not Urgent & Important', color: '#3b82f6' }, // Blue
+                { id: 'q2', title: 'Schedule', description: 'Not Urgent & Important', color: '#f6f63bff' }, // Blue
                 { id: 'q3', title: 'Delegate', description: 'Urgent & Not Important', color: '#f97316' }, // Orange
                 { id: 'q4', title: 'Eliminate', description: 'Not Urgent & Not Important', color: '#94a3b8' } // Grey
             ]

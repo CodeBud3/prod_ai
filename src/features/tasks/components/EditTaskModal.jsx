@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FunnyTooltip } from '../../../components/ui';
 
 export function EditTaskModal({ task, onSave, onCancel }) {
     const [title, setTitle] = useState(task.title);
@@ -92,22 +93,23 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Priority</label>
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 {priorityConfig.map(p => (
-                                    <button
-                                        key={p.id}
-                                        type="button"
-                                        onClick={() => setPriority(p.id)}
-                                        style={{
-                                            width: '32px',
-                                            height: '32px',
-                                            borderRadius: '50%',
-                                            border: priority === p.id ? '3px solid white' : '2px solid transparent',
-                                            background: p.color,
-                                            cursor: 'pointer',
-                                            padding: 0,
-                                            transition: 'transform 0.2s'
-                                        }}
-                                        title={p.label}
-                                    />
+                                    <FunnyTooltip key={p.id} context="priority" content={p.label}>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPriority(p.id)}
+                                            style={{
+                                                width: '32px',
+                                                height: '32px',
+                                                borderRadius: '50%',
+                                                border: priority === p.id ? '3px solid white' : '2px solid transparent',
+                                                background: p.color,
+                                                cursor: 'pointer',
+                                                padding: 0,
+                                                transition: 'transform 0.2s'
+                                            }}
+                                            aria-label={p.label}
+                                        />
+                                    </FunnyTooltip>
                                 ))}
                             </div>
                         </div>

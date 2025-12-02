@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { CircularProgress } from './CircularProgress';
+import { CircularProgress } from '../../../components/ui';
 import confetti from 'canvas-confetti';
-import { MotivationalPopup } from './MotivationalPopup';
-import { FunnyTooltip } from './FunnyTooltip';
+import { MotivationalPopup } from '../../../components/ui';
+import { FunnyTooltip } from '../../../components/ui';
 
 export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) {
     const focusColors = {

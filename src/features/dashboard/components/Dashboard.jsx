@@ -1,55 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { AiEngine } from '../services/AiEngine';
-import { QuickAdd } from './QuickAdd';
-import { EditTaskModal } from './EditTaskModal';
-import { CircularProgress } from './CircularProgress';
-import { TaskItem } from './TaskItem';
-import { NotificationPanel } from './NotificationPanel';
-import { FunnyTooltip } from './FunnyTooltip';
-import { PrioritizationStudio } from './PrioritizationStudio';
+import { useSelector, useDispatch } from 'react-redux';
+import { AiEngine } from '../../../services/AiEngine';
+import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio } from '../../tasks';
+import { NotificationPanel } from '../../notifications';
+import { CircularProgress, FunnyTooltip } from '../../../components/ui';
+import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
+import { setTheme, toggleFocusMode } from '../../user/userSlice';
+import { selectAllTasks } from '../../tasks/tasksSelectors';
+import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan } from '../../tasks/tasksSlice';
+import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
+import { clearPlan } from '../../plan/planSlice';
+import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
+import { selectAllNotifications } from '../../notifications/notificationsSelectors';
 
-export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUpdatePlan, onDeleteTask, onEditTask }) {
-    const [loading, setLoading] = useState(!plan && tasks.length > 0);
-    const [sortBy, setSortBy] = useState('smart'); // smart, date_added, priority, due_date
+export function Dashboard() {
+    const dispatch = useDispatch();
+
+    // Get all state from Redux
+    const user = useSelector(selectUser);
+    const tasks = useSelector(selectAllTasks);
+    const planSummary = useSelector(selectPlanSummary);
+    const hasPlan = useSelector(selectHasPlan);
+    const theme = useSelector(selectTheme);
+    const isFocusMode = useSelector(selectFocusMode);
+    const notifications = useSelector(selectAllNotifications);
+
+    const [loading, setLoading] = useState(!hasPlan && tasks.length > 0);
+    const [sortBy, setSortBy] = useState('smart');
     const [editingTask, setEditingTask] = useState(null);
-    const [viewFilter, setViewFilter] = useState('all'); // all, todo, completed
-    const [groupBy, setGroupBy] = useState('none'); // none, tags
-    const [viewMode, setViewMode] = useState('my_tasks'); // my_tasks, assigned
-    const [notifications, setNotifications] = useState([]);
+    const [viewFilter, setViewFilter] = useState('all');
+    const [groupBy, setGroupBy] = useState('none');
+    const [viewMode, setViewMode] = useState('my_tasks');
     const [showPrioritization, setShowPrioritization] = useState(false);
 
     // Check for reminders
     useEffect(() => {
         const interval = setInterval(() => {
-            const now = Date.now();
-            const needsUpdate = tasks.some(task => {
-                return task.remindAt && task.remindAt <= now && !task.reminding;
-            });
+            dispatch(checkReminders());
 
-            if (needsUpdate) {
-                const updatedTasks = tasks.map(task => {
-                    if (task.remindAt && task.remindAt <= now && !task.reminding) {
-                        return { ...task, reminding: true };
-                    }
-                    return task;
-                });
-                onUpdateTasks(updatedTasks);
-
-                // Also update plan
-                if (plan) {
-                    const updatedPlan = {
-                        ...plan,
-                        tasks: plan.tasks.map(task => {
-                            if (task.remindAt && task.remindAt <= now && !task.reminding) {
-                                return { ...task, reminding: true };
-                            }
-                            return task;
-                        })
-                    };
-                    onUpdatePlan(updatedPlan);
-                }
-            }
             // Check for follow-ups
+            const now = Date.now();
             const followUpDueTasks = tasks.filter(task => {
                 const isDue = task.followUp?.dueAt &&
                     task.followUp.dueAt <= now &&
@@ -64,111 +54,59 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
             });
 
             if (followUpDueTasks.length > 0) {
-                setNotifications(prev => {
-                    const newNotifications = [...prev];
-                    followUpDueTasks.forEach(task => {
-                        // Check if already notified
-                        if (!newNotifications.some(n => n.taskId === task.id)) {
-                            newNotifications.push({
-                                id: Date.now() + Math.random(),
-                                taskId: task.id,
-                                message: `${task.title} ${task.assignee ? `(${task.assignee})` : ''}`,
-                                timestamp: Date.now()
-                            });
-                        }
-                    });
-                    return newNotifications;
+                followUpDueTasks.forEach(task => {
+                    // Check if already notified
+                    if (!notifications.some(n => n.taskId === task.id)) {
+                        dispatch(addNotification({
+                            taskId: task.id,
+                            message: `${task.title} ${task.assignee ? `(${task.assignee})` : ''}`
+                        }));
+                    }
                 });
             }
         }, 5000); // Check every 5 seconds
 
         return () => clearInterval(interval);
-    }, [tasks, plan, onUpdateTasks, onUpdatePlan, viewMode]);
+    }, [dispatch, tasks, viewMode, notifications]);
 
     useEffect(() => {
-        if (!plan && tasks.length > 0) {
-            AiEngine.generatePlan(tasks, user.role).then(newPlan => {
-                onUpdatePlan(newPlan);
-                onUpdateTasks(newPlan.tasks);
-                setLoading(false);
-            });
+        if (!hasPlan && tasks.length > 0) {
+            dispatch(generateTaskPlan({ tasks, role: user.role }))
+                .unwrap()
+                .then(() => setLoading(false))
+                .catch(() => setLoading(false));
         }
-    }, [plan, tasks, user.role]);
+    }, [dispatch, hasPlan, tasks, user.role]);
 
     const handleAddTask = async (newTask) => {
         const task = {
-            id: Date.now(),
-            createdAt: Date.now(),
+            id: Date.now() + Math.random(),
             status: 'todo',
-            quadrant: null, // Will be set by AI
+            createdAt: Date.now(),
             ...newTask
         };
-
-        const updatedTasks = [...tasks, task];
-        onUpdateTasks(updatedTasks);
-
-        // Re-run AI to sort
-        const newPlan = await AiEngine.generatePlan(updatedTasks, user.role);
-        onUpdatePlan(newPlan);
-        onUpdateTasks(newPlan.tasks);
+        dispatch(addTask(task));
     };
 
     const handleSaveTask = (updatedTask) => {
-        onEditTask(updatedTask);
+        dispatch(updateTask({ id: updatedTask.id, updates: updatedTask }));
         setEditingTask(null);
     };
 
-    const handleSetReminder = (taskId, minutes) => {
-        const now = Date.now();
-        const remindAt = now + (minutes * 60 * 1000);
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, remindAt, reminderStartedAt: now } : t
-        );
-        onUpdateTasks(updatedTasks);
+    const handleDeleteTask = (taskId) => {
+        dispatch(deleteTask(taskId));
+    };
 
-        if (plan) {
-            const updatedPlan = {
-                ...plan,
-                tasks: plan.tasks.map(t =>
-                    t.id === taskId ? { ...t, remindAt, reminderStartedAt: now } : t
-                )
-            };
-            onUpdatePlan(updatedPlan);
-        }
+    const handleSetReminder = (taskId, minutes) => {
+        dispatch(setReminder({ taskId, minutes }));
     };
 
     const handleDismissReminder = (taskId) => {
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, reminding: false, remindAt: null, reminderStartedAt: null } : t
-        );
-        onUpdateTasks(updatedTasks);
-
-        if (plan) {
-            const updatedPlan = {
-                ...plan,
-                tasks: plan.tasks.map(t =>
-                    t.id === taskId ? { ...t, reminding: false, remindAt: null, reminderStartedAt: null } : t
-                )
-            };
-            onUpdatePlan(updatedPlan);
-        }
+        dispatch(dismissReminder(taskId));
     };
 
     const handleSetFocus = (taskId, color) => {
-        const updatedTasks = tasks.map(t =>
-            t.id === taskId ? { ...t, focusColor: color } : t
-        );
-        onUpdateTasks(updatedTasks);
-
-        if (plan) {
-            const updatedPlan = {
-                ...plan,
-                tasks: plan.tasks.map(t =>
-                    t.id === taskId ? { ...t, focusColor: color } : t
-                )
-            };
-            onUpdatePlan(updatedPlan);
-        }
+        dispatch(setFocusColor({ taskId, color }));
     };
 
     if (loading) {
@@ -182,7 +120,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
     }
 
     // If no plan and no tasks, show empty state or just QuickAdd
-    const sourceTasks = plan ? plan.tasks : tasks;
+    const sourceTasks = tasks;
 
     // View Filtering
     const getFilteredTasks = () => {
@@ -235,56 +173,10 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
 
     const displayTasks = getSortedTasks();
 
-    const isFocusMode = user.preferences.focusMode;
     const currentTask = displayTasks.find(t => t.status !== 'done');
 
-    const toggleTask = (id) => {
-        const newTasks = tasks.map(t => {
-            if (t.id === id) {
-                const isDone = t.status === 'done';
-                return {
-                    ...t,
-                    status: isDone ? 'todo' : 'done',
-                    completedAt: isDone ? null : Date.now(),
-                    focusColor: isDone ? t.focusColor : null // Clear focus on completion
-                };
-            }
-            return t;
-        });
-        onUpdateTasks(newTasks);
-
-        if (plan) {
-            const newPlan = {
-                ...plan,
-                tasks: plan.tasks.map(t => {
-                    if (t.id === id) {
-                        const isDone = t.status === 'done';
-                        return {
-                            ...t,
-                            status: isDone ? 'todo' : 'done',
-                            completedAt: isDone ? null : Date.now(),
-                            focusColor: isDone ? t.focusColor : null // Clear focus on completion
-                        };
-                    }
-                    return t;
-                })
-            };
-            onUpdatePlan(newPlan);
-        }
-    };
-
-    const toggleFocusMode = (active) => {
-        onUpdateUser({
-            ...user,
-            preferences: { ...user.preferences, focusMode: active }
-        });
-    };
-
-    const setTheme = (theme) => {
-        onUpdateUser({
-            ...user,
-            preferences: { ...user.preferences, theme }
-        });
+    const handleToggleTask = (id) => {
+        dispatch(toggleTask(id));
     };
 
     const formatTimestamp = (timestamp) => {
@@ -325,10 +217,10 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 )}
 
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '20px' }}>
-                    <button onClick={() => toggleTask(currentTask.id)} className="btn-primary" style={{ fontSize: '18px', padding: '16px 32px' }}>
+                    <button onClick={() => handleToggleTask(currentTask.id)} className="btn-primary" style={{ fontSize: '18px', padding: '16px 32px' }}>
                         Mark Complete
                     </button>
-                    <button onClick={() => toggleFocusMode(false)} className="btn-secondary">
+                    <button onClick={() => dispatch(toggleFocusMode(false))} className="btn-secondary">
                         Exit Focus
                     </button>
                 </div>
@@ -341,18 +233,41 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
                 <div>
                     <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>Good Morning, {user.name}</h1>
-                    <p style={{ color: 'var(--text-secondary)' }}>{plan ? plan.summary : 'Ready to plan.'}</p>
+                    <p style={{ color: 'var(--text-secondary)' }}>{planSummary || 'Ready to plan.'}</p>
                 </div>
-                <button onClick={() => toggleFocusMode(true)} className="btn-primary" disabled={!displayTasks.some(t => t.status !== 'done')}>
-                    Enter Focus Mode
-                </button>
-                <button
-                    onClick={() => setShowPrioritization(true)}
-                    className="btn-secondary"
-                    style={{ marginLeft: '12px' }}
-                >
-                    Help me prioritize
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ position: 'relative' }}>
+                        <span style={{ fontSize: '20px', cursor: 'pointer' }}>🔔</span>
+                        {notifications.length > 0 && (
+                            <span style={{
+                                position: 'absolute',
+                                top: '-5px',
+                                right: '-5px',
+                                background: 'var(--accent-danger)',
+                                color: 'white',
+                                fontSize: '10px',
+                                width: '16px',
+                                height: '16px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold'
+                            }}>
+                                {notifications.length}
+                            </span>
+                        )}
+                    </div>
+                    <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-primary" disabled={!displayTasks.some(t => t.status !== 'done')}>
+                        Enter Focus Mode
+                    </button>
+                    <button
+                        onClick={() => setShowPrioritization(true)}
+                        className="btn-secondary"
+                    >
+                        Help me prioritize
+                    </button>
+                </div>
             </header>
 
             {/* Theme Switcher */}
@@ -364,7 +279,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                 ].map(theme => (
                     <button
                         key={theme.id}
-                        onClick={() => setTheme(theme.id)}
+                        onClick={() => dispatch(setTheme(theme.id))}
                         style={{
                             background: (user.preferences.theme || 'dark') === theme.id ? 'var(--accent-primary)' : 'transparent',
                             color: (user.preferences.theme || 'dark') === theme.id ? 'white' : 'var(--text-secondary)',
@@ -560,11 +475,11 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                 <TaskItem
                                     key={`${tag}-${task.id}`}
                                     task={task}
-                                    toggleTask={toggleTask}
+                                    toggleTask={handleToggleTask}
                                     setEditingTask={setEditingTask}
                                     handleSetReminder={handleSetReminder}
                                     handleDismissReminder={handleDismissReminder}
-                                    onDeleteTask={onDeleteTask}
+                                    onDeleteTask={handleDeleteTask}
                                     getPriorityColor={getPriorityColor}
                                     formatTimestamp={formatTimestamp}
                                 />
@@ -628,11 +543,11 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                         <TaskItem
                                             key={`${bucket}-${task.id}`}
                                             task={task}
-                                            toggleTask={toggleTask}
+                                            toggleTask={handleToggleTask}
                                             setEditingTask={setEditingTask}
                                             handleSetReminder={handleSetReminder}
                                             handleDismissReminder={handleDismissReminder}
-                                            onDeleteTask={onDeleteTask}
+                                            onDeleteTask={handleDeleteTask}
                                             getPriorityColor={getPriorityColor}
                                             formatTimestamp={formatTimestamp}
                                             handleSetFocus={handleSetFocus}
@@ -667,11 +582,11 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                 <TaskItem
                                     key={`${assignee}-${task.id}`}
                                     task={task}
-                                    toggleTask={toggleTask}
+                                    toggleTask={handleToggleTask}
                                     setEditingTask={setEditingTask}
                                     handleSetReminder={handleSetReminder}
                                     handleDismissReminder={handleDismissReminder}
-                                    onDeleteTask={onDeleteTask}
+                                    onDeleteTask={handleDeleteTask}
                                     getPriorityColor={getPriorityColor}
                                     formatTimestamp={formatTimestamp}
                                 />
@@ -703,11 +618,11 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                 <TaskItem
                                     key={`${project}-${task.id}`}
                                     task={task}
-                                    toggleTask={toggleTask}
+                                    toggleTask={handleToggleTask}
                                     setEditingTask={setEditingTask}
                                     handleSetReminder={handleSetReminder}
                                     handleDismissReminder={handleDismissReminder}
-                                    onDeleteTask={onDeleteTask}
+                                    onDeleteTask={handleDeleteTask}
                                     getPriorityColor={getPriorityColor}
                                     formatTimestamp={formatTimestamp}
                                 />
@@ -719,11 +634,11 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                         <TaskItem
                             key={task.id}
                             task={task}
-                            toggleTask={toggleTask}
+                            toggleTask={handleToggleTask}
                             setEditingTask={setEditingTask}
                             handleSetReminder={handleSetReminder}
                             handleDismissReminder={handleDismissReminder}
-                            onDeleteTask={onDeleteTask}
+                            onDeleteTask={handleDeleteTask}
                             getPriorityColor={getPriorityColor}
                             formatTimestamp={formatTimestamp}
                             handleSetFocus={handleSetFocus}
@@ -743,7 +658,7 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
             <NotificationPanel
                 notifications={notifications}
                 onDismiss={(notificationId) => {
-                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                    dispatch(removeNotification(notificationId));
                 }}
                 onSnooze={(taskId, notificationId) => {
                     // Snooze for 1 hour
@@ -753,12 +668,12 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                             ...task,
                             followUp: {
                                 ...task.followUp,
-                                dueAt: Date.now() + 60 * 60 * 1000
+                                dueAt: Date.now() + 60 * 60 * 1000 // 1 hour from now
                             }
                         };
-                        onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                        dispatch(updateTask({ id: task.id, updates: updatedTask }));
                     }
-                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                    dispatch(removeNotification(notificationId));
                 }}
                 onComplete={(taskId, notificationId) => {
                     const task = tasks.find(t => t.id === taskId);
@@ -770,16 +685,14 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
                                 status: 'completed'
                             }
                         };
-                        onUpdateTasks(tasks.map(t => t.id === task.id ? updatedTask : t));
+                        dispatch(updateTask({ id: task.id, updates: updatedTask }));
                     }
-                    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+                    dispatch(removeNotification(notificationId));
                 }}
             />
 
             {showPrioritization && (
                 <PrioritizationStudio
-                    tasks={tasks}
-                    onUpdateTasks={onUpdateTasks}
                     onClose={() => setShowPrioritization(false)}
                 />
             )}
@@ -788,8 +701,9 @@ export function Dashboard({ user, tasks, plan, onUpdateUser, onUpdateTasks, onUp
 }
 
 function getPriorityColor(p) {
-    if (p === 'high') return 'var(--accent-danger)';
-    if (p === 'medium') return '#f97316';
-    if (p === 'low') return 'var(--accent-warning)';
+    if (p === 'critical') return 'var(--accent-danger)';
+    if (p === 'high') return '#f97316';
+    if (p === 'medium') return 'var(--accent-warning)';
+    if (p === 'low') return '#f9f116ff';
     return 'var(--text-muted)'; // Explicit gray for none
 }
