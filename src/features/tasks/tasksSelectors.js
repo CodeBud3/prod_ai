@@ -62,3 +62,96 @@ export const selectCompletedTaskCount = createSelector(
     [selectCompletedTasks],
     (tasks) => tasks.length
 )
+
+// Executive Summary Selectors
+
+export const selectTasksCompletedYesterday = createSelector(
+    [selectCompletedTasks],
+    (tasks) => {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+
+        const endOfYesterday = new Date(yesterday);
+        endOfYesterday.setHours(23, 59, 59, 999);
+
+        return tasks.filter(t => {
+            if (!t.completedAt) return false;
+            const completedDate = new Date(t.completedAt);
+            return completedDate >= yesterday && completedDate <= endOfYesterday;
+        });
+    }
+)
+
+export const selectTopPrioritiesToday = createSelector(
+    [selectActiveTasks],
+    (tasks) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+
+        return tasks.filter(t => {
+            // Due today
+            if (t.dueDate) {
+                const due = new Date(t.dueDate);
+                if (due >= today && due <= endOfToday) return true;
+            }
+            // Or High/Critical Priority
+            return t.priority === 'high' || t.priority === 'critical';
+        }).sort((a, b) => {
+            // Sort by priority then due date
+            const pMap = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
+            const pDiff = pMap[b.priority || 'none'] - pMap[a.priority || 'none'];
+            if (pDiff !== 0) return pDiff;
+            return (a.dueDate ? new Date(a.dueDate) : Infinity) - (b.dueDate ? new Date(b.dueDate) : Infinity);
+        });
+    }
+)
+
+export const selectTasksForTomorrow = createSelector(
+    [selectActiveTasks],
+    (tasks) => {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        const endOfTomorrow = new Date(tomorrow);
+        endOfTomorrow.setHours(23, 59, 59, 999);
+
+        return tasks.filter(t => {
+            if (!t.dueDate) return false;
+            const due = new Date(t.dueDate);
+            return due >= tomorrow && due <= endOfTomorrow;
+        });
+    }
+)
+
+export const selectUpcomingTasks = createSelector(
+    [selectActiveTasks],
+    (tasks) => {
+        const dayAfterTomorrow = new Date();
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+        dayAfterTomorrow.setHours(0, 0, 0, 0);
+
+        return tasks.filter(t => {
+            if (!t.dueDate) return false;
+            const due = new Date(t.dueDate);
+            return due >= dayAfterTomorrow;
+        });
+    }
+)
+
+export const selectDelegatedTasks = createSelector(
+    [selectActiveTasks],
+    (tasks) => tasks.filter(t => t.assignee && t.assignee.trim() !== '')
+)
+
+export const selectMyTasks = createSelector(
+    [selectActiveTasks],
+    (tasks) => tasks.filter(t => !t.assignee || t.assignee.trim() === '')
+)
+
+export const selectDecisionTasks = createSelector(
+    [selectActiveTasks],
+    (tasks) => tasks.filter(t => t.tags && t.tags.some(tag => tag.toLowerCase() === 'decision'))
+)
