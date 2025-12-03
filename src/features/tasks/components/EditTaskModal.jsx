@@ -5,33 +5,63 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority || 'none');
-    const [dueDate, setDueDate] = useState(task.dueDate || '');
+    // Ensure dueDate is in datetime-local format (YYYY-MM-DDTHH:mm)
+    const [dueDate, setDueDate] = useState(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '');
     const [tags, setTags] = useState(task.tags || []);
     const [tagInput, setTagInput] = useState('');
     const [assignee, setAssignee] = useState(task.assignee || '');
     const [followUp, setFollowUp] = useState(task.followUp || { dueAt: null, recurring: false, frequency: 'daily', status: 'pending' });
     const [project, setProject] = useState(task.project || '');
 
+    // New Remind Before State
+    const [remindBefore, setRemindBefore] = useState(task.remindBefore || null); // { value: 15, unit: 'minutes' }
+
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Calculate remindAt if remindBefore and dueDate are set
+        let remindAt = task.remindAt;
+        if (dueDate && remindBefore) {
+            const dueTime = new Date(dueDate).getTime();
+            let offset = 0;
+            if (remindBefore.unit === 'minutes') offset = remindBefore.value * 60 * 1000;
+            if (remindBefore.unit === 'hours') offset = remindBefore.value * 60 * 60 * 1000;
+            if (remindBefore.unit === 'days') offset = remindBefore.value * 24 * 60 * 60 * 1000;
+            if (remindBefore.unit === 'weeks') offset = remindBefore.value * 7 * 24 * 60 * 60 * 1000;
+
+            remindAt = dueTime - offset;
+        } else if (!remindBefore) {
+            remindAt = null;
+        }
+
         onSave({
             ...task,
             title,
             description,
             priority,
-            dueDate,
+            dueDate: dueDate || null, // Store as ISO string or null
             tags,
             assignee,
             followUp,
-            project: project.trim() || null
+            project: project.trim() || null,
+            remindBefore,
+            remindAt
         });
     };
 
     const priorityConfig = [
-        { id: 'none', color: 'rgba(255,255,255,0.2)', label: 'No Priority' },
-        { id: 'low', color: 'var(--accent-warning)', label: 'Low Priority' },
-        { id: 'medium', color: '#f97316', label: 'Medium Priority' },
-        { id: 'high', color: 'var(--accent-danger)', label: 'High Priority' }
+        { id: 'low', color: 'rgba(255,255,255,0.2)', label: 'Low Priority' },
+        { id: 'medium', color: 'var(--accent-warning)', label: 'Medium Priority' },
+        { id: 'high', color: '#f97316', label: 'High Priority' },
+        { id: 'critical', color: 'var(--accent-danger)', label: 'Critical Priority' }
+    ];
+
+    const reminderOptions = [
+        { label: '15m', value: 15, unit: 'minutes' },
+        { label: '1h', value: 1, unit: 'hours' },
+        { label: '1d', value: 1, unit: 'days' },
+        { label: '2d', value: 2, unit: 'days' },
+        { label: '1w', value: 1, unit: 'weeks' }
     ];
 
     return (
@@ -115,11 +145,84 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                         </div>
 
                         <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Due Date</label>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Deadline</label>
                             <input
-                                type="date"
+                                type="datetime-local"
                                 value={dueDate}
                                 onChange={e => setDueDate(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px',
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: '8px',
+                                    color: 'white',
+                                    fontSize: '12px'
+                                }}
+                            />
+
+                            {/* Remind Before Options */}
+                            {dueDate && (
+                                <div style={{ marginTop: '8px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Remind me before:</span>
+                                        {remindBefore && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setRemindBefore(null)}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer' }}
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {!remindBefore ? (
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                            {reminderOptions.map(opt => (
+                                                <button
+                                                    key={opt.label}
+                                                    type="button"
+                                                    onClick={() => setRemindBefore({ value: opt.value, unit: opt.unit })}
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.1)',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '2px 6px',
+                                                        fontSize: '10px',
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{
+                                            fontSize: '11px',
+                                            color: 'var(--accent-primary)',
+                                            background: 'rgba(59, 130, 246, 0.1)',
+                                            padding: '4px 8px',
+                                            borderRadius: '4px',
+                                            display: 'inline-block'
+                                        }}>
+                                            🔔 {remindBefore.value} {remindBefore.unit} before
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Project</label>
+                            <input
+                                type="text"
+                                value={project}
+                                onChange={e => setProject(e.target.value)}
+                                placeholder="Project Name"
                                 style={{
                                     width: '100%',
                                     padding: '8px',
@@ -130,14 +233,13 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                 }}
                             />
                         </div>
-
                         <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Project</label>
+                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Assign To</label>
                             <input
                                 type="text"
-                                value={project}
-                                onChange={e => setProject(e.target.value)}
-                                placeholder="Project Name"
+                                value={assignee}
+                                onChange={e => setAssignee(e.target.value)}
+                                placeholder="Name or Team"
                                 style={{
                                     width: '100%',
                                     padding: '8px',
@@ -198,107 +300,6 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                         width: '100px'
                                     }}
                                 />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Assign To</label>
-                            <input
-                                type="text"
-                                value={assignee}
-                                onChange={e => setAssignee(e.target.value)}
-                                placeholder="Name or Team"
-                                style={{
-                                    width: '100%',
-                                    padding: '8px',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '8px',
-                                    color: 'white'
-                                }}
-                            />
-                        </div>
-
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Follow Up</label>
-                            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                                <select
-                                    onChange={(e) => {
-                                        if (!e.target.value) return;
-                                        const now = Date.now();
-                                        let dueAt = now;
-                                        if (e.target.value === '1h') dueAt += 60 * 60 * 1000;
-                                        if (e.target.value === '24h') dueAt += 24 * 60 * 60 * 1000;
-                                        if (e.target.value === '1w') dueAt += 7 * 24 * 60 * 60 * 1000;
-
-                                        setFollowUp({
-                                            ...followUp,
-                                            dueAt,
-                                            status: 'pending'
-                                        });
-                                    }}
-                                    style={{
-                                        flex: 1,
-                                        padding: '8px',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: 'white',
-                                        fontSize: '12px'
-                                    }}
-                                >
-                                    <option value="">Quick Set...</option>
-                                    <option value="1h">In 1 Hour</option>
-                                    <option value="24h">Tomorrow</option>
-                                    <option value="1w">Next Week</option>
-                                </select>
-                                <input
-                                    type="datetime-local"
-                                    value={followUp.dueAt ? new Date(followUp.dueAt - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''}
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            setFollowUp({
-                                                ...followUp,
-                                                dueAt: new Date(e.target.value).getTime(),
-                                                status: 'pending'
-                                            });
-                                        }
-                                    }}
-                                    style={{
-                                        padding: '8px',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: 'white',
-                                        fontSize: '12px',
-                                        width: '140px'
-                                    }}
-                                />
-                            </div>
-
-                            {followUp.dueAt && (
-                                <div style={{ fontSize: '11px', color: 'var(--accent-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <span>Due: {new Date(followUp.dueAt).toLocaleString()}</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => setFollowUp({ ...followUp, dueAt: null })}
-                                        style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                                    >
-                                        Clear
-                                    </button>
-                                </div>
-                            )}
-
-                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <input
-                                    type="checkbox"
-                                    checked={followUp.recurring}
-                                    onChange={e => setFollowUp({ ...followUp, recurring: e.target.checked })}
-                                    id="recurring"
-                                />
-                                <label htmlFor="recurring" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Recurring?</label>
                             </div>
                         </div>
                     </div>

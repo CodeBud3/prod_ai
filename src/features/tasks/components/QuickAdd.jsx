@@ -47,10 +47,10 @@ export function QuickAdd({ onAdd }) {
     };
 
     const priorityConfig = [
-        { id: 'none', color: 'rgba(255,255,255,0.2)', label: 'No Priority' },
-        { id: 'low', color: 'var(--accent-warning)', label: 'Low Priority' },
-        { id: 'medium', color: '#f97316', label: 'Medium Priority' },
-        { id: 'high', color: 'var(--accent-danger)', label: 'High Priority' }
+        { id: 'low', color: 'rgba(255,255,255,0.2)', label: 'Low Priority' },
+        { id: 'medium', color: 'var(--accent-warning)', label: 'Medium Priority' },
+        { id: 'high', color: '#f97316', label: 'High Priority' },
+        { id: 'critical', color: 'var(--accent-danger)', label: 'Critical Priority' }
     ];
 
     return (

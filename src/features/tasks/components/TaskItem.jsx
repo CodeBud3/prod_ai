@@ -180,7 +180,7 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                title: `Follow up due: ${new Date(task.followUp.dueAt).toLocaleString()}`
+                                title: `Review due: ${new Date(task.followUp.dueAt).toLocaleString()}`
                             }}>
                                 🔔
                             </div>

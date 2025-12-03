@@ -14,6 +14,321 @@ import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
 import { selectAllNotifications } from '../../notifications/notificationsSelectors';
 
+// --- Reusable Task Section Component ---
+const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) => {
+    const [sortBy, setSortBy] = useState('smart');
+    const [groupBy, setGroupBy] = useState('none');
+    const [viewFilter, setViewFilter] = useState('all');
+
+    // View Filtering
+    const getFilteredTasks = (taskList) => {
+        switch (viewFilter) {
+            case 'todo':
+                return taskList.filter(t => t.status !== 'done');
+            case 'completed':
+                return taskList.filter(t => t.status === 'done');
+            case 'all':
+            default:
+                return taskList;
+        }
+    };
+
+    // Smart Sort Algorithm
+    const calculateSmartScore = (task) => {
+        let score = 0;
+        const now = Date.now();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+
+        // 1. Focus Pointer (Highest Priority)
+        if (task.focusColor) score += 1000;
+
+        // 2. Criticality / Eisenhower
+        if (task.priority === 'critical' || task.eisenhowerQuadrant === 'q1') score += 500;
+        if (task.priority === 'high') score += 200;
+
+        // 3. Deadlines
+        if (task.dueDate) {
+            const due = new Date(task.dueDate);
+            if (due < now) score += 400; // Overdue
+            else if (due <= endOfToday) score += 300; // Due Today
+            else score += 50; // Has deadline
+        }
+
+        // 4. Reminders
+        if (task.reminding) score += 150;
+        if (task.remindAt && task.remindAt <= now) score += 100;
+
+        // 5. Effort / Impact (Quick Wins)
+        if (task.impactEffortQuadrant === 'quick_wins') score += 50;
+
+        // 6. Recency (Tie-breaker)
+        score += (task.createdAt / 10000000000);
+
+        return score;
+    };
+
+    // Sorting Logic
+    const getSortedTasks = (taskList) => {
+        let sorted = [...taskList];
+        switch (sortBy) {
+            case 'date_added':
+                return sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            case 'priority':
+                const pMap = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
+                return sorted.sort((a, b) => pMap[b.priority || 'none'] - pMap[a.priority || 'none']);
+            case 'due_date':
+                return sorted.sort((a, b) => {
+                    if (!a.dueDate) return 1;
+                    if (!b.dueDate) return -1;
+                    return new Date(a.dueDate) - new Date(b.dueDate);
+                });
+            case 'smart':
+            default:
+                return sorted.sort((a, b) => calculateSmartScore(b) - calculateSmartScore(a));
+        }
+    };
+
+    const renderTaskList = (taskList) => {
+        const filtered = getFilteredTasks(taskList);
+        const sorted = getSortedTasks(filtered);
+
+        if (sorted.length === 0) {
+            return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No tasks found.</div>;
+        }
+
+        if (groupBy === 'tags') {
+            return Object.entries(sorted.reduce((groups, task) => {
+                const taskTags = task.tags && task.tags.length > 0 ? task.tags : ['Untagged'];
+                taskTags.forEach(tag => {
+                    if (!groups[tag]) groups[tag] = [];
+                    groups[tag].push(task);
+                });
+                return groups;
+            }, {})).map(([tag, groupTasks]) => (
+                <div key={tag} style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+                        {tag} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                    </h3>
+                    {groupTasks.map(task => (
+                        <TaskItem
+                            key={`${tag}-${task.id}`}
+                            task={task}
+                            toggleTask={onToggleTask}
+                            setEditingTask={setEditingTask}
+                            handleSetReminder={handleSetReminder}
+                            handleDismissReminder={handleDismissReminder}
+                            onDeleteTask={onDeleteTask}
+                            getPriorityColor={getPriorityColor}
+                            formatTimestamp={formatTimestamp}
+                            handleSetFocus={handleSetFocus}
+                        />
+                    ))}
+                </div>
+            ));
+        } else if (groupBy === 'date') {
+            const buckets = { 'Today': [], 'Next 3 Days': [], 'Next Week': [], 'Upcoming': [], 'No Date': [] };
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            sorted.forEach(task => {
+                if (!task.dueDate) { buckets['No Date'].push(task); return; }
+                const dueDate = new Date(task.dueDate);
+                dueDate.setHours(0, 0, 0, 0);
+                const diffTime = dueDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays <= 0) buckets['Today'].push(task);
+                else if (diffDays <= 3) buckets['Next 3 Days'].push(task);
+                else if (diffDays <= 7) buckets['Next Week'].push(task);
+                else buckets['Upcoming'].push(task);
+            });
+
+            return Object.entries(buckets).map(([bucket, tasks]) => {
+                if (tasks.length === 0) return null;
+                return (
+                    <div key={bucket} style={{ marginBottom: '24px' }}>
+                        <h3 style={{ fontSize: '12px', color: bucket === 'Today' ? 'var(--accent-primary)' : 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+                            {bucket} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{tasks.length}</span>
+                        </h3>
+                        {tasks.map(task => (
+                            <TaskItem
+                                key={`${bucket}-${task.id}`}
+                                task={task}
+                                toggleTask={onToggleTask}
+                                setEditingTask={setEditingTask}
+                                handleSetReminder={handleSetReminder}
+                                handleDismissReminder={handleDismissReminder}
+                                onDeleteTask={onDeleteTask}
+                                getPriorityColor={getPriorityColor}
+                                formatTimestamp={formatTimestamp}
+                                handleSetFocus={handleSetFocus}
+                            />
+                        ))}
+                    </div>
+                );
+            });
+        } else if (groupBy === 'project') {
+            return Object.entries(sorted.reduce((groups, task) => {
+                const project = task.project || 'No Project';
+                if (!groups[project]) groups[project] = [];
+                groups[project].push(task);
+                return groups;
+            }, {})).map(([project, groupTasks]) => (
+                <div key={project} style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+                        {project} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                    </h3>
+                    {groupTasks.map(task => (
+                        <TaskItem
+                            key={`${project}-${task.id}`}
+                            task={task}
+                            toggleTask={onToggleTask}
+                            setEditingTask={setEditingTask}
+                            handleSetReminder={handleSetReminder}
+                            handleDismissReminder={handleDismissReminder}
+                            onDeleteTask={onDeleteTask}
+                            getPriorityColor={getPriorityColor}
+                            formatTimestamp={formatTimestamp}
+                            handleSetFocus={handleSetFocus}
+                        />
+                    ))}
+                </div>
+            ));
+        } else if (groupBy === 'assignee') {
+            return Object.entries(sorted.reduce((groups, task) => {
+                const assignee = task.assignee || 'Unassigned';
+                if (!groups[assignee]) groups[assignee] = [];
+                groups[assignee].push(task);
+                return groups;
+            }, {})).map(([assignee, groupTasks]) => (
+                <div key={assignee} style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
+                        {assignee} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
+                    </h3>
+                    {groupTasks.map(task => (
+                        <TaskItem
+                            key={`${assignee}-${task.id}`}
+                            task={task}
+                            toggleTask={onToggleTask}
+                            setEditingTask={setEditingTask}
+                            handleSetReminder={handleSetReminder}
+                            handleDismissReminder={handleDismissReminder}
+                            onDeleteTask={onDeleteTask}
+                            getPriorityColor={getPriorityColor}
+                            formatTimestamp={formatTimestamp}
+                            handleSetFocus={handleSetFocus}
+                        />
+                    ))}
+                </div>
+            ));
+        }
+
+        // Default list
+        return sorted.map(task => (
+            <TaskItem
+                key={task.id}
+                task={task}
+                toggleTask={onToggleTask}
+                setEditingTask={setEditingTask}
+                handleSetReminder={handleSetReminder}
+                handleDismissReminder={handleDismissReminder}
+                onDeleteTask={onDeleteTask}
+                getPriorityColor={getPriorityColor}
+                formatTimestamp={formatTimestamp}
+                handleSetFocus={handleSetFocus}
+            />
+        ));
+    };
+
+    return (
+        <div className="glass-panel" style={{ padding: '20px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
+                    <span>{icon}</span> {title}
+                    <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>
+                        {count}
+                    </span>
+                </h2>
+            </div>
+
+            {/* Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                    {['all', 'todo', 'completed'].map(filter => (
+                        <button
+                            key={filter}
+                            onClick={() => setViewFilter(filter)}
+                            style={{
+                                padding: '4px 8px',
+                                fontSize: '10px',
+                                borderRadius: '4px',
+                                border: 'none',
+                                background: viewFilter === filter ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
+                                color: viewFilter === filter ? 'white' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                textTransform: 'capitalize'
+                            }}
+                        >
+                            {filter}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <FunnyTooltip context="sort">
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            style={{
+                                background: 'rgba(0,0,0,0.2)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: 'var(--text-secondary)',
+                                fontSize: '10px',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <option value="smart">Sort: Smart</option>
+                            <option value="priority">Sort: Priority</option>
+                            <option value="due_date">Sort: Due Date</option>
+                            <option value="date_added">Sort: Added</option>
+                        </select>
+                    </FunnyTooltip>
+
+                    <FunnyTooltip context="group">
+                        <select
+                            value={groupBy}
+                            onChange={(e) => setGroupBy(e.target.value)}
+                            style={{
+                                background: 'rgba(0,0,0,0.2)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: 'var(--text-secondary)',
+                                fontSize: '10px',
+                                padding: '4px',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <option value="none">Group: None</option>
+                            <option value="tags">Group: Tags</option>
+                            <option value="date">Group: Date</option>
+                            <option value="project">Group: Project</option>
+                            <option value="assignee">Group: Assignee</option>
+                        </select>
+                    </FunnyTooltip>
+                </div>
+            </div>
+
+            {renderTaskList(tasks)}
+        </div>
+    );
+};
+
 export function Dashboard() {
     const dispatch = useDispatch();
 
@@ -27,10 +342,7 @@ export function Dashboard() {
     const notifications = useSelector(selectAllNotifications);
 
     const [loading, setLoading] = useState(!hasPlan && tasks.length > 0);
-    const [sortBy, setSortBy] = useState('smart');
     const [editingTask, setEditingTask] = useState(null);
-    const [viewFilter, setViewFilter] = useState('all');
-    const [groupBy, setGroupBy] = useState('none');
     const [showPrioritization, setShowPrioritization] = useState(false);
 
     // Check for reminders
@@ -132,229 +444,6 @@ export function Dashboard() {
             </div>
         );
     }
-
-    // View Filtering
-    const getFilteredTasks = (taskList) => {
-        switch (viewFilter) {
-            case 'todo':
-                return taskList.filter(t => t.status !== 'done');
-            case 'completed':
-                return taskList.filter(t => t.status === 'done');
-            case 'all':
-            default:
-                return taskList;
-        }
-    };
-
-    // Smart Sort Algorithm
-    const calculateSmartScore = (task) => {
-        let score = 0;
-        const now = Date.now();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
-
-        // 1. Focus Pointer (Highest Priority)
-        if (task.focusColor) score += 1000;
-
-        // 2. Criticality / Eisenhower
-        if (task.priority === 'critical' || task.eisenhowerQuadrant === 'q1') score += 500;
-        if (task.priority === 'high') score += 200;
-
-        // 3. Deadlines
-        if (task.dueDate) {
-            const due = new Date(task.dueDate);
-            if (due < now) score += 400; // Overdue
-            else if (due <= endOfToday) score += 300; // Due Today
-            else score += 50; // Has deadline
-        }
-
-        // 4. Reminders
-        if (task.reminding) score += 150;
-        if (task.remindAt && task.remindAt <= now) score += 100;
-
-        // 5. Effort / Impact (Quick Wins)
-        if (task.impactEffortQuadrant === 'quick_wins') score += 50;
-
-        // 6. Recency (Tie-breaker)
-        score += (task.createdAt / 10000000000);
-
-        return score;
-    };
-
-    // Sorting Logic
-    const getSortedTasks = (taskList) => {
-        let sorted = [...taskList];
-        switch (sortBy) {
-            case 'date_added':
-                return sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            case 'priority':
-                const pMap = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
-                return sorted.sort((a, b) => pMap[b.priority || 'none'] - pMap[a.priority || 'none']);
-            case 'due_date':
-                return sorted.sort((a, b) => {
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate) - new Date(b.dueDate);
-                });
-            case 'smart':
-            default:
-                return sorted.sort((a, b) => calculateSmartScore(b) - calculateSmartScore(a));
-        }
-    };
-
-    const renderTaskList = (taskList) => {
-        const filtered = getFilteredTasks(taskList);
-        const sorted = getSortedTasks(filtered);
-
-        if (sorted.length === 0) {
-            return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No tasks found.</div>;
-        }
-
-        if (groupBy === 'tags') {
-            return Object.entries(sorted.reduce((groups, task) => {
-                const taskTags = task.tags && task.tags.length > 0 ? task.tags : ['Untagged'];
-                taskTags.forEach(tag => {
-                    if (!groups[tag]) groups[tag] = [];
-                    groups[tag].push(task);
-                });
-                return groups;
-            }, {})).map(([tag, groupTasks]) => (
-                <div key={tag} style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-                        {tag} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
-                    </h3>
-                    {groupTasks.map(task => (
-                        <TaskItem
-                            key={`${tag}-${task.id}`}
-                            task={task}
-                            toggleTask={handleToggleTask}
-                            setEditingTask={setEditingTask}
-                            handleSetReminder={handleSetReminder}
-                            handleDismissReminder={handleDismissReminder}
-                            onDeleteTask={handleDeleteTask}
-                            getPriorityColor={getPriorityColor}
-                            formatTimestamp={formatTimestamp}
-                            handleSetFocus={handleSetFocus}
-                        />
-                    ))}
-                </div>
-            ));
-        } else if (groupBy === 'date') {
-            const buckets = { 'Today': [], 'Next 3 Days': [], 'Next Week': [], 'Upcoming': [], 'No Date': [] };
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            sorted.forEach(task => {
-                if (!task.dueDate) { buckets['No Date'].push(task); return; }
-                const dueDate = new Date(task.dueDate);
-                dueDate.setHours(0, 0, 0, 0);
-                const diffTime = dueDate - today;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays <= 0) buckets['Today'].push(task);
-                else if (diffDays <= 3) buckets['Next 3 Days'].push(task);
-                else if (diffDays <= 7) buckets['Next Week'].push(task);
-                else buckets['Upcoming'].push(task);
-            });
-
-            return Object.entries(buckets).map(([bucket, tasks]) => {
-                if (tasks.length === 0) return null;
-                return (
-                    <div key={bucket} style={{ marginBottom: '24px' }}>
-                        <h3 style={{ fontSize: '12px', color: bucket === 'Today' ? 'var(--accent-primary)' : 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-                            {bucket} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{tasks.length}</span>
-                        </h3>
-                        {tasks.map(task => (
-                            <TaskItem
-                                key={`${bucket}-${task.id}`}
-                                task={task}
-                                toggleTask={handleToggleTask}
-                                setEditingTask={setEditingTask}
-                                handleSetReminder={handleSetReminder}
-                                handleDismissReminder={handleDismissReminder}
-                                onDeleteTask={handleDeleteTask}
-                                getPriorityColor={getPriorityColor}
-                                formatTimestamp={formatTimestamp}
-                                handleSetFocus={handleSetFocus}
-                            />
-                        ))}
-                    </div>
-                );
-            });
-        } else if (groupBy === 'project') {
-            return Object.entries(sorted.reduce((groups, task) => {
-                const project = task.project || 'No Project';
-                if (!groups[project]) groups[project] = [];
-                groups[project].push(task);
-                return groups;
-            }, {})).map(([project, groupTasks]) => (
-                <div key={project} style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-                        {project} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
-                    </h3>
-                    {groupTasks.map(task => (
-                        <TaskItem
-                            key={`${project}-${task.id}`}
-                            task={task}
-                            toggleTask={handleToggleTask}
-                            setEditingTask={setEditingTask}
-                            handleSetReminder={handleSetReminder}
-                            handleDismissReminder={handleDismissReminder}
-                            onDeleteTask={handleDeleteTask}
-                            getPriorityColor={getPriorityColor}
-                            formatTimestamp={formatTimestamp}
-                            handleSetFocus={handleSetFocus}
-                        />
-                    ))}
-                </div>
-            ));
-        } else if (groupBy === 'assignee') {
-            return Object.entries(sorted.reduce((groups, task) => {
-                const assignee = task.assignee || 'Unassigned';
-                if (!groups[assignee]) groups[assignee] = [];
-                groups[assignee].push(task);
-                return groups;
-            }, {})).map(([assignee, groupTasks]) => (
-                <div key={assignee} style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 600 }}>
-                        {assignee} <span style={{ background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '10px', fontSize: '10px' }}>{groupTasks.length}</span>
-                    </h3>
-                    {groupTasks.map(task => (
-                        <TaskItem
-                            key={`${assignee}-${task.id}`}
-                            task={task}
-                            toggleTask={handleToggleTask}
-                            setEditingTask={setEditingTask}
-                            handleSetReminder={handleSetReminder}
-                            handleDismissReminder={handleDismissReminder}
-                            onDeleteTask={handleDeleteTask}
-                            getPriorityColor={getPriorityColor}
-                            formatTimestamp={formatTimestamp}
-                            handleSetFocus={handleSetFocus}
-                        />
-                    ))}
-                </div>
-            ));
-        }
-
-        // Default list
-        return sorted.map(task => (
-            <TaskItem
-                key={task.id}
-                task={task}
-                toggleTask={handleToggleTask}
-                setEditingTask={setEditingTask}
-                handleSetReminder={handleSetReminder}
-                handleDismissReminder={handleDismissReminder}
-                onDeleteTask={handleDeleteTask}
-                getPriorityColor={getPriorityColor}
-                formatTimestamp={formatTimestamp}
-                handleSetFocus={handleSetFocus}
-            />
-        ));
-    };
 
     const myTasks = tasks.filter(t => !t.assignee || t.assignee.trim() === '');
     const delegatedTasks = tasks.filter(t => t.assignee && t.assignee.trim() !== '');
@@ -481,115 +570,39 @@ export function Dashboard() {
 
                 <QuickAdd onAdd={handleAddTask} />
 
-                {/* Controls */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        {['all', 'todo', 'completed'].map(filter => (
-                            <button
-                                key={filter}
-                                onClick={() => setViewFilter(filter)}
-                                style={{
-                                    padding: '6px 12px',
-                                    fontSize: '12px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    background: viewFilter === filter ? 'var(--accent-primary)' : 'rgba(255,255,255,0.05)',
-                                    color: viewFilter === filter ? 'white' : 'var(--text-secondary)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    textTransform: 'capitalize'
-                                }}
-                            >
-                                {filter}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Sort:</span>
-                        <FunnyTooltip context="sort">
-                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
-                                {[
-                                    { id: 'smart', label: 'Smart' },
-                                    { id: 'priority', label: 'Priority' },
-                                    { id: 'due_date', label: 'Due' },
-                                    { id: 'date_added', label: 'Added' }
-                                ].map(opt => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => setSortBy(opt.id)}
-                                        style={{
-                                            background: sortBy === opt.id ? 'var(--accent-primary)' : 'transparent',
-                                            color: sortBy === opt.id ? 'white' : 'var(--text-secondary)',
-                                            border: 'none',
-                                            padding: '4px 12px',
-                                            borderRadius: '4px',
-                                            fontSize: '12px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </FunnyTooltip>
-
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '8px' }}>Group:</span>
-                        <FunnyTooltip context="group">
-                            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.2)', borderRadius: '6px', padding: '2px' }}>
-                                {[
-                                    { id: 'none', label: 'None' },
-                                    { id: 'tags', label: 'Tags' },
-                                    { id: 'date', label: 'Date' },
-                                    { id: 'project', label: 'Project' },
-                                    { id: 'assignee', label: 'Assignee' }
-                                ].map(opt => (
-                                    <button
-                                        key={opt.id}
-                                        onClick={() => setGroupBy(opt.id)}
-                                        style={{
-                                            background: groupBy === opt.id ? 'var(--accent-primary)' : 'transparent',
-                                            color: groupBy === opt.id ? 'white' : 'var(--text-secondary)',
-                                            border: 'none',
-                                            padding: '4px 12px',
-                                            borderRadius: '4px',
-                                            fontSize: '12px',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </FunnyTooltip>
-                    </div>
-                </div>
-
                 {/* Split View Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     {/* My Tasks Column */}
-                    <div className="glass-panel" style={{ padding: '20px', minHeight: '400px' }}>
-                        <h2 style={{ fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>👤</span> My Tasks
-                            <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>
-                                {getFilteredTasks(myTasks).length}
-                            </span>
-                        </h2>
-                        {renderTaskList(myTasks)}
-                    </div>
+                    <TaskSection
+                        title="My Tasks"
+                        icon="👤"
+                        tasks={myTasks}
+                        count={myTasks.length}
+                        onToggleTask={handleToggleTask}
+                        setEditingTask={setEditingTask}
+                        handleSetReminder={handleSetReminder}
+                        handleDismissReminder={handleDismissReminder}
+                        onDeleteTask={handleDeleteTask}
+                        getPriorityColor={getPriorityColor}
+                        formatTimestamp={formatTimestamp}
+                        handleSetFocus={handleSetFocus}
+                    />
 
                     {/* Assigned to Others Column */}
-                    <div className="glass-panel" style={{ padding: '20px', minHeight: '400px' }}>
-                        <h2 style={{ fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>👥</span> Assigned to Others
-                            <span style={{ fontSize: '12px', background: 'rgba(255,255,255,0.1)', padding: '2px 8px', borderRadius: '12px' }}>
-                                {getFilteredTasks(delegatedTasks).length}
-                            </span>
-                        </h2>
-                        {renderTaskList(delegatedTasks)}
-                    </div>
+                    <TaskSection
+                        title="Assigned to Others"
+                        icon="👥"
+                        tasks={delegatedTasks}
+                        count={delegatedTasks.length}
+                        onToggleTask={handleToggleTask}
+                        setEditingTask={setEditingTask}
+                        handleSetReminder={handleSetReminder}
+                        handleDismissReminder={handleDismissReminder}
+                        onDeleteTask={handleDeleteTask}
+                        getPriorityColor={getPriorityColor}
+                        formatTimestamp={formatTimestamp}
+                        handleSetFocus={handleSetFocus}
+                    />
                 </div>
             </div>
 
