@@ -14,11 +14,72 @@ import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
 import { selectAllNotifications } from '../../notifications/notificationsSelectors';
 
+// --- Sorting Helper Functions ---
+const calculateSmartScore = (task) => {
+    let score = 0;
+    const now = Date.now();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(today);
+    endOfToday.setHours(23, 59, 59, 999);
+
+    // 1. Focus Pointer (Highest Priority)
+    if (task.focusColor) score += 1000;
+
+    // 2. Criticality / Eisenhower
+    if (task.priority === 'critical' || task.eisenhowerQuadrant === 'q1') score += 500;
+    if (task.priority === 'high') score += 200;
+
+    // 3. Deadlines
+    if (task.dueDate) {
+        const due = new Date(task.dueDate);
+        if (due < now) score += 400; // Overdue
+        else if (due <= endOfToday) score += 300; // Due Today
+        else score += 50; // Has deadline
+    }
+
+    // 4. Reminders
+    if (task.reminding) score += 150;
+    if (task.remindAt && task.remindAt <= now) score += 100;
+
+    // 5. Effort / Impact (Quick Wins)
+    if (task.impactEffortQuadrant === 'quick_wins') score += 50;
+
+    // 6. Recency (Tie-breaker)
+    score += (task.createdAt / 10000000000);
+
+    return score;
+};
+
+const getSortedTasks = (taskList, sortBy) => {
+    let sorted = [...taskList];
+    switch (sortBy) {
+        case 'date_added':
+            return sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        case 'priority':
+            const pMap = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
+            return sorted.sort((a, b) => pMap[b.priority || 'none'] - pMap[a.priority || 'none']);
+        case 'due_date':
+            return sorted.sort((a, b) => {
+                if (!a.dueDate) return 1;
+                if (!b.dueDate) return -1;
+                return new Date(a.dueDate) - new Date(b.dueDate);
+            });
+        case 'smart':
+        default:
+            return sorted.sort((a, b) => calculateSmartScore(b) - calculateSmartScore(a));
+    }
+};
+
 // --- Reusable Task Section Component ---
-const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) => {
-    const [sortBy, setSortBy] = useState('smart');
-    const [groupBy, setGroupBy] = useState('none');
+const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus, defaultSort = 'smart', defaultGroup = 'none', sortBy: externalSortBy, setSortBy: externalSetSortBy }) => {
+    const [internalSortBy, setInternalSortBy] = useState(defaultSort);
+    const [groupBy, setGroupBy] = useState(defaultGroup);
     const [viewFilter, setViewFilter] = useState('all');
+
+    // Use external sortBy if provided (for My Tasks in Focus Mode), otherwise use internal state
+    const sortBy = externalSortBy !== undefined ? externalSortBy : internalSortBy;
+    const setSortBy = externalSetSortBy || setInternalSortBy;
 
     // View Filtering
     const getFilteredTasks = (taskList) => {
@@ -33,67 +94,9 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
         }
     };
 
-    // Smart Sort Algorithm
-    const calculateSmartScore = (task) => {
-        let score = 0;
-        const now = Date.now();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endOfToday = new Date(today);
-        endOfToday.setHours(23, 59, 59, 999);
-
-        // 1. Focus Pointer (Highest Priority)
-        if (task.focusColor) score += 1000;
-
-        // 2. Criticality / Eisenhower
-        if (task.priority === 'critical' || task.eisenhowerQuadrant === 'q1') score += 500;
-        if (task.priority === 'high') score += 200;
-
-        // 3. Deadlines
-        if (task.dueDate) {
-            const due = new Date(task.dueDate);
-            if (due < now) score += 400; // Overdue
-            else if (due <= endOfToday) score += 300; // Due Today
-            else score += 50; // Has deadline
-        }
-
-        // 4. Reminders
-        if (task.reminding) score += 150;
-        if (task.remindAt && task.remindAt <= now) score += 100;
-
-        // 5. Effort / Impact (Quick Wins)
-        if (task.impactEffortQuadrant === 'quick_wins') score += 50;
-
-        // 6. Recency (Tie-breaker)
-        score += (task.createdAt / 10000000000);
-
-        return score;
-    };
-
-    // Sorting Logic
-    const getSortedTasks = (taskList) => {
-        let sorted = [...taskList];
-        switch (sortBy) {
-            case 'date_added':
-                return sorted.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-            case 'priority':
-                const pMap = { critical: 4, high: 3, medium: 2, low: 1, none: 0 };
-                return sorted.sort((a, b) => pMap[b.priority || 'none'] - pMap[a.priority || 'none']);
-            case 'due_date':
-                return sorted.sort((a, b) => {
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate) - new Date(b.dueDate);
-                });
-            case 'smart':
-            default:
-                return sorted.sort((a, b) => calculateSmartScore(b) - calculateSmartScore(a));
-        }
-    };
-
     const renderTaskList = (taskList) => {
         const filtered = getFilteredTasks(taskList);
-        const sorted = getSortedTasks(filtered);
+        const sorted = getSortedTasks(filtered, sortBy);
 
         if (sorted.length === 0) {
             return <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontStyle: 'italic' }}>No tasks found.</div>;
@@ -344,6 +347,7 @@ export function Dashboard() {
     const [loading, setLoading] = useState(!hasPlan && tasks.length > 0);
     const [editingTask, setEditingTask] = useState(null);
     const [showPrioritization, setShowPrioritization] = useState(false);
+    const [myTasksSort, setMyTasksSort] = useState('smart'); // Lifted state for My Tasks sort
 
     // Check for reminders
     useEffect(() => {
@@ -448,7 +452,9 @@ export function Dashboard() {
     const myTasks = tasks.filter(t => !t.assignee || t.assignee.trim() === '');
     const delegatedTasks = tasks.filter(t => t.assignee && t.assignee.trim() !== '');
 
-    const currentTask = tasks.find(t => t.status !== 'done'); // Simplified for focus mode check
+    // Get sorted my tasks for Focus Mode
+    const sortedMyTasks = getSortedTasks(myTasks.filter(t => t.status !== 'done'), myTasksSort);
+    const currentTask = sortedMyTasks[0]; // Use first task from sorted list
 
     if (isFocusMode && currentTask) {
         return (
@@ -586,6 +592,10 @@ export function Dashboard() {
                         getPriorityColor={getPriorityColor}
                         formatTimestamp={formatTimestamp}
                         handleSetFocus={handleSetFocus}
+                        defaultSort="smart"
+                        defaultGroup="project"
+                        sortBy={myTasksSort}
+                        setSortBy={setMyTasksSort}
                     />
 
                     {/* Assigned to Others Column */}
@@ -602,6 +612,8 @@ export function Dashboard() {
                         getPriorityColor={getPriorityColor}
                         formatTimestamp={formatTimestamp}
                         handleSetFocus={handleSetFocus}
+                        defaultSort="smart"
+                        defaultGroup="assignee"
                     />
                 </div>
             </div>

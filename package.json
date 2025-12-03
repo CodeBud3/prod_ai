@@ -16,6 +16,7 @@
     "@reduxjs/toolkit": "^2.11.0",
     "@tailwindcss/vite": "^4.1.17",
     "canvas-confetti": "^1.9.4",
+    "chrono-node": "^2.9.0",
     "framer-motion": "^12.23.25",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
