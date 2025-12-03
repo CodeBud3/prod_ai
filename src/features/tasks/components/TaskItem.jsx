@@ -56,7 +56,8 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
         toggleTask(task.id);
     };
 
-    return (
+    // Render task with optional spinning border for focused tasks
+    const taskContent = (
         <div
             className={`task-item ${task.status === 'done' ? 'done' : ''} ${task.reminding ? 'reminding' : ''}`}
             onDoubleClick={() => setEditingTask(task)}
@@ -64,8 +65,9 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 display: 'flex',
                 alignItems: 'flex-start',
                 padding: '16px',
+                // background: activeFocusColor ? 'transparent' : 'rgba(255,255,255,0.03)',
                 background: activeFocusColor ? `linear-gradient(90deg, ${activeFocusColor}15 0%, rgba(255,255,255,0.03) 100%)` : 'rgba(255,255,255,0.03)',
-                marginBottom: '8px',
+                marginBottom: activeFocusColor ? '0' : '8px',
                 borderRadius: 'var(--radius-md)',
                 borderLeft: activeFocusColor ? `6px solid ${activeFocusColor}` : `4px solid ${getPriorityColor(task.priority) || 'var(--text-muted)'}`,
                 cursor: 'default',
@@ -371,4 +373,45 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
             </div>
         </div>
     );
+
+    // Wrap focused tasks with spinning conic gradient border
+    if (activeFocusColor) {
+        return (
+            <div
+                style={{
+                    position: 'relative',
+                    display: 'inline-flex',
+                    width: '100%',
+                    overflow: 'hidden',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '2px',
+                    marginBottom: '8px'
+                }}
+            >
+                <span
+                    style={{
+                        position: 'absolute',
+                        inset: '-1000%',
+                        background: 'conic-gradient(from 90deg at 50% 50%, #E2CBFF 0%, #393BB2 50%, #E2CBFF 100%)',
+                        animation: 'spin 2s linear infinite'
+                    }}
+                />
+                <span
+                    style={{
+                        display: 'inline-flex',
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: 'var(--radius-md)',
+                        // background: 'var(--bg-glass)',
+                        background: 'black',
+                        backdropFilter: 'blur(var(--glass-blur))'
+                    }}
+                >
+                    {taskContent}
+                </span>
+            </div>
+        );
+    }
+
+    return taskContent;
 }

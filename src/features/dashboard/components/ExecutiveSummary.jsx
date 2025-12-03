@@ -38,13 +38,11 @@ export function ExecutiveSummary({ vertical = false }) {
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',
-        minWidth: vertical ? '100%' : '200px',
-        borderTopWidth: '3px',
-        borderTopStyle: 'solid'
+        minWidth: vertical ? '100%' : '200px'
     };
 
     const SummaryCard = ({ title, count, items, color, icon }) => (
-        <div className="glass-panel" style={{ ...cardStyle, borderTopColor: color }}>
+        <div className="glass-panel" style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>{icon}</span> {title}
@@ -93,7 +91,7 @@ export function ExecutiveSummary({ vertical = false }) {
             />
 
             {/* Radar / Actions */}
-            <div className="glass-panel" style={{ ...cardStyle, borderTopColor: 'var(--accent-primary)' }}>
+            <div className="glass-panel" style={cardStyle}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>📡</span> Radar
