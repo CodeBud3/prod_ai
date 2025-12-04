@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export function CircularProgress({ startTime, endTime, size = 24 }) {
     const [progress, setProgress] = useState(0);
+    const intervalRef = useRef(null);
 
     useEffect(() => {
         const updateProgress = () => {
@@ -11,15 +12,19 @@ export function CircularProgress({ startTime, endTime, size = 24 }) {
             const percent = Math.min((elapsed / total) * 100, 100);
             setProgress(percent);
 
-            if (percent >= 100) {
-                clearInterval(interval);
+            if (percent >= 100 && intervalRef.current) {
+                clearInterval(intervalRef.current);
             }
         };
 
         updateProgress();
-        const interval = setInterval(updateProgress, 100);
+        intervalRef.current = setInterval(updateProgress, 100);
 
-        return () => clearInterval(interval);
+        return () => {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+            }
+        };
     }, [startTime, endTime]);
 
     const radius = (size - 4) / 2;
