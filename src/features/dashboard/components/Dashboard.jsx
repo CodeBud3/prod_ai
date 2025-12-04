@@ -6,7 +6,7 @@ import { NotificationPanel } from '../../notifications';
 import { CircularProgress, FunnyTooltip } from '../../../components/ui';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
-import { setTheme, toggleFocusMode } from '../../user/userSlice';
+import { toggleFocusMode } from '../../user/userSlice';
 import { selectAllTasks, selectMyTasks, selectDelegatedTasks } from '../../tasks/tasksSelectors';
 import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan } from '../../tasks/tasksSlice';
 import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
@@ -497,43 +497,6 @@ export function Dashboard() {
 
             {/* Left Sidebar */}
             <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>
-                {/* Theme Switcher */}
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px', gap: '8px', background: 'var(--bg-glass)', padding: '4px', borderRadius: '12px', width: '100%', border: '1px solid var(--glass-border)' }}>
-                    {[
-                        { id: 'dark', icon: '🌙', label: 'Dark' },
-                        { id: 'light', icon: '☀️', label: 'Light' },
-                        { id: 'glass', icon: '🔮', label: 'Glass' }
-                    ].map(theme => (
-                        <button
-                            key={theme.id}
-                            onClick={() => dispatch(setTheme(theme.id))}
-                            style={{
-                                background: (user.preferences.theme || 'dark') === theme.id ? 'var(--accent-primary)' : 'transparent',
-                                color: (user.preferences.theme || 'dark') === theme.id ? 'white' : 'var(--text-secondary)',
-                                border: 'none',
-                                padding: '6px 12px',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontSize: '13px',
-                                fontWeight: 500,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px',
-                                transition: 'all 0.2s',
-                                flex: 1,
-                                justifyContent: 'center'
-                            }}
-                        >
-                            <FunnyTooltip context="theme">
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <span>{theme.icon}</span>
-                                    {theme.label}
-                                </span>
-                            </FunnyTooltip>
-                        </button>
-                    ))}
-                </div>
-
                 <ExecutiveSummary vertical={true} />
             </div>
 

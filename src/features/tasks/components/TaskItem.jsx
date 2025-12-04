@@ -28,15 +28,15 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
             confetti({
                 particleCount: 30,
-                spread: 40,
-                startVelocity: 45,
-                gravity: 1.5,
-                decay: 0.85,
-                scalar: 0.6,
+                spread: 35,
+                startVelocity: 48,
+                gravity: 2.0,
+                decay: 0.92,
+                scalar: 0.5,
                 origin: { x, y },
                 colors: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
                 disableForReducedMotion: true,
-                zIndex: 1000,
+                ticks: 80,
             });
 
             // Motivational Message Logic
@@ -65,15 +65,13 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 display: 'flex',
                 alignItems: 'flex-start',
                 padding: '16px',
-                // background: activeFocusColor ? 'transparent' : 'rgba(255,255,255,0.03)',
-                background: activeFocusColor ? `linear-gradient(90deg, ${activeFocusColor}15 0%, rgba(255,255,255,0.03) 100%)` : 'rgba(255,255,255,0.03)',
+                background: activeFocusColor ? '#0a0b0d' : 'rgba(255,255,255,0.03)',
                 marginBottom: activeFocusColor ? '0' : '8px',
                 borderRadius: 'var(--radius-md)',
                 borderLeft: activeFocusColor ? `6px solid ${activeFocusColor}` : `4px solid ${getPriorityColor(task.priority) || 'var(--text-muted)'}`,
                 cursor: 'default',
                 position: 'relative',
-                boxShadow: activeFocusColor ? `0 0 15px ${activeFocusColor}20` : 'none',
-                transition: 'all 0.3s ease'
+                boxShadow: activeFocusColor ? `0 0 15px ${activeFocusColor}20` : 'none'
             }}
         >
             <div style={{ position: 'relative' }}>
@@ -259,6 +257,7 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                             <option value="" disabled hidden>
                                 {(task.followUp?.dueAt || task.remindAt) ? '🔔 Active' : (task.assignee ? '🔔 Follow Up' : '🔔 Revisit')}
                             </option>
+                            <option value="1">1m</option>
                             <option value="15">15m</option>
                             <option value="30">30m</option>
                             <option value="60">1h</option>
@@ -509,14 +508,13 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 />
                 <span
                     style={{
+                        position: 'relative',
+                        zIndex: 1,
                         display: 'inline-flex',
                         width: '100%',
-                        height: '100%',
-                        borderRadius: 'var(--radius-md)',
-                        // background: 'var(--bg-glass)',
-                        background: 'black',
-                        backdropFilter: 'blur(var(--glass-blur))',
-                        flexDirection: 'column' // Ensure content stacks correctly
+                        borderRadius: 'calc(var(--radius-md) - 2px)',
+                        background: '#0a0b0d',
+                        flexDirection: 'column'
                     }}
                 >
                     {taskContent}

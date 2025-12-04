@@ -18,7 +18,7 @@ export function CircularProgress({ startTime, endTime, size = 24 }) {
         };
 
         updateProgress();
-        intervalRef.current = setInterval(updateProgress, 100);
+        intervalRef.current = setInterval(updateProgress, 1000); // Update once per second for performance
 
         return () => {
             if (intervalRef.current) {
@@ -54,7 +54,7 @@ export function CircularProgress({ startTime, endTime, size = 24 }) {
                     strokeDasharray={circumference}
                     strokeDashoffset={strokeDashoffset}
                     strokeLinecap="round"
-                    style={{ transition: 'stroke-dashoffset 0.1s linear' }}
+                    style={{ transition: 'stroke-dashoffset 1s linear' }}
                 />
             </svg>
         </div>
