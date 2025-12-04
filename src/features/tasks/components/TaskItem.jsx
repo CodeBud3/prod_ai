@@ -4,7 +4,7 @@ import confetti from 'canvas-confetti';
 import { MotivationalPopup } from '../../../components/ui';
 import { FunnyTooltip } from '../../../components/ui';
 
-export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus }) {
+export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus, onUpdateTask }) {
     const focusColors = {
         purple: '#a855f7',
         grey: '#94a3b8',
@@ -91,285 +91,396 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 )}
             </div>
 
-            <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 500, textDecoration: task.status === 'done' ? 'line-through' : 'none', color: task.status === 'done' ? 'var(--text-muted)' : 'inherit' }}>
-                            {task.title}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {/* Title Row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                    {/* Title */}
+                    <div style={{
+                        flex: 1,
+                        minWidth: 0,
+                        fontWeight: 500,
+                        textDecoration: task.status === 'done' ? 'line-through' : 'none',
+                        color: task.status === 'done' ? 'var(--text-muted)' : 'inherit',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 1,
+                        WebkitBoxOrient: 'vertical'
+                    }}>
+                        {task.title}
+                    </div>
+                </div>
+
+                {/* Description Row - Full Width */}
+                {task.description && (
+                    <div style={{
+                        fontSize: '14px',
+                        color: 'var(--text-secondary)',
+                        maxHeight: '3em',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+                        WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
+                        opacity: 0.8
+                    }}>
+                        {task.description}
+                    </div>
+                )}
+
+                {/* Metadata Row - Tags, Completion */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    {/* Tags */}
+                    {task.tags && task.tags.length > 0 && task.tags.map(tag => (
+                        <span key={tag} style={{
+                            fontSize: '10px',
+                            background: 'rgba(255,255,255,0.1)',
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            color: 'var(--text-secondary)'
+                        }}>
+                            #{tag}
+                        </span>
+                    ))}
+
+                    {/* Completion Timestamp */}
+                    {task.status === 'done' && task.completedAt && (
+                        <div style={{ fontSize: '12px', color: 'var(--accent-success)', fontStyle: 'italic' }}>
+                            ✓ Completed {formatTimestamp(task.completedAt)}
                         </div>
-                        {/* Glassy Blur Description */}
-                        {task.description && (
-                            <div style={{
-                                fontSize: '14px',
-                                color: 'var(--text-secondary)',
-                                marginTop: '4px',
-                                maxHeight: '3em',
-                                overflow: 'hidden',
-                                maskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                                WebkitMaskImage: 'linear-gradient(to bottom, black 60%, transparent 100%)',
-                                opacity: 0.8
-                            }}>
-                                {task.description}
-                            </div>
-                        )}
-                        {/* Tags Display */}
-                        {task.tags && task.tags.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
-                                {task.tags.map(tag => (
-                                    <span key={tag} style={{
-                                        fontSize: '10px',
-                                        background: 'rgba(255,255,255,0.1)',
-                                        padding: '2px 6px',
-                                        borderRadius: '8px',
-                                        color: 'var(--text-secondary)'
-                                    }}>
-                                        #{tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        {/* Completion Timestamp */}
-                        {task.status === 'done' && task.completedAt && (
-                            <div style={{ fontSize: '12px', color: 'var(--accent-success)', marginTop: '4px', fontStyle: 'italic' }}>
-                                ✓ Completed {formatTimestamp(task.completedAt)}
-                            </div>
+                    )}
+
+                    {/* Priority */}
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        {task.priority !== 'none' ? `Priority: ${task.priority}` : 'No Priority'} • {task.quadrant?.toUpperCase()}
+                    </div>
+                </div>
+
+                {/* Controls Row - Wrappable */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                    {task.dueDate && (
+                        <div style={{ fontSize: '12px', color: 'var(--accent-warning)', whiteSpace: 'nowrap' }}>
+                            {task.dueDate}
+                        </div>
+                    )}
+
+                    {task.project && (
+                        <div style={{
+                            fontSize: '11px',
+                            background: 'rgba(168, 85, 247, 0.2)',
+                            color: '#c084fc',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            📁 {task.project}
+                        </div>
+                    )}
+
+                    {task.assignee && (
+                        <div style={{
+                            fontSize: '11px',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            color: '#60a5fa',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            👤 {task.assignee}
+                        </div>
+                    )}
+
+                    {/* Unified Action Dropdown (Revisit / Follow Up) */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <select
+                            value=""
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (!val) return;
+
+                                let dueAt = null;
+                                const now = Date.now();
+
+                                if (val === 'clear') {
+                                    dueAt = null;
+                                } else {
+                                    const minutes = parseInt(val);
+                                    dueAt = now + (minutes * 60 * 1000);
+                                }
+
+                                if (task.assignee) {
+                                    // Handle Follow Up
+                                    if (onUpdateTask) {
+                                        onUpdateTask(task.id, {
+                                            followUp: {
+                                                ...(task.followUp || {}), // Ensure existing followUp is preserved or initialized
+                                                dueAt,
+                                                startedAt: dueAt ? now : null,
+                                                status: 'pending'
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    // Handle Revisit (Reminder)
+                                    if (val === 'clear') {
+                                        handleDismissReminder(task.id);
+                                    } else {
+                                        handleSetReminder(task.id, parseInt(val));
+                                    }
+                                }
+                            }}
+                            style={{
+                                background: (task.followUp?.dueAt || task.remindAt) ? 'rgba(245, 158, 11, 0.2)' : 'transparent',
+                                border: (task.followUp?.dueAt || task.remindAt) ? '1px solid rgba(245, 158, 11, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                color: (task.followUp?.dueAt || task.remindAt) ? '#fbbf24' : 'var(--text-muted)',
+                                padding: '2px 4px',
+                                fontSize: '10px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                            }}
+                            title={
+                                task.assignee
+                                    ? (task.followUp?.dueAt ? `Follow up due: ${new Date(task.followUp.dueAt).toLocaleString()}` : "Set Follow Up")
+                                    : (task.remindAt ? `Revisit due: ${new Date(task.remindAt).toLocaleString()}` : "Set Revisit")
+                            }
+                        >
+                            <option value="" disabled hidden>
+                                {(task.followUp?.dueAt || task.remindAt) ? '🔔 Active' : (task.assignee ? '🔔 Follow Up' : '🔔 Revisit')}
+                            </option>
+                            <option value="15">15m</option>
+                            <option value="30">30m</option>
+                            <option value="60">1h</option>
+                            <option value="120">2h</option>
+                            <option value="180">3h</option>
+                            <option value="360">6h</option>
+                            <option value="1440">Tomorrow (24h)</option>
+                            <option value="2880">2 Days</option>
+                            <option value="10080">1 Week</option>
+                            {(task.followUp?.dueAt || task.remindAt) && <option value="clear">❌ Clear</option>}
+                        </select>
+
+                        {/* Circular Progress for Revisit/Reminder */}
+                        {((!task.assignee && task.remindAt && task.reminderStartedAt) || (task.assignee && task.followUp?.dueAt && task.followUp?.startedAt)) && (
+                            <CircularProgress
+                                startTime={task.assignee ? task.followUp.startedAt : task.reminderStartedAt}
+                                endTime={task.assignee ? task.followUp.dueAt : task.remindAt}
+                                size={16}
+                            />
                         )}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
-                        {task.dueDate && (
-                            <div style={{ fontSize: '12px', color: 'var(--accent-warning)', whiteSpace: 'nowrap' }}>
-                                {task.dueDate}
-                            </div>
-                        )}
 
-                        {task.project && (
-                            <div style={{
-                                fontSize: '11px',
-                                background: 'rgba(168, 85, 247, 0.2)',
-                                color: '#c084fc',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
+                    {/* Contextual Reminder Label */}
+                    {task.reminding && (
+                        <div style={{
+                            fontSize: '10px',
+                            color: 'white',
+                            background: 'var(--accent-primary)',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            animation: 'pulse-glow 2s infinite',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            🔔 {
+                                task.dueDate && new Date(task.dueDate) < Date.now() ? 'Overdue' :
+                                    task.followUp?.dueAt && task.followUp.dueAt <= Date.now() ? 'Follow Up Due' :
+                                        task.remindAt && task.remindAt <= Date.now() ? 'Revisit Due' :
+                                            'Reminder'
+                            }
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDismissReminder(task.id);
+                                }}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    padding: 0,
+                                    marginLeft: '4px',
+                                    opacity: 0.8
+                                }}
+                                title="Dismiss"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Focus Pointer Control */}
+                    <div className="focus-control" style={{ position: 'relative' }}>
+                        <FunnyTooltip context="focus">
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowFocusPicker(!showFocusPicker);
+                                }}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: activeFocusColor || 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    padding: '4px',
+                                    fontSize: '14px',
+                                    opacity: activeFocusColor || showFocusPicker ? 1 : 0.5
+                                }}
+                                title="Set Focus Pointer"
+                            >
+                                ➤
+                            </button>
+                        </FunnyTooltip>
+                        {showFocusPicker && (
+                            <div className="focus-picker" style={{
+                                position: 'absolute',
+                                top: '100%',
+                                right: 0,
+                                background: 'rgba(24, 27, 33, 0.95)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                padding: '8px',
                                 display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                fontWeight: 600,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px'
+                                gap: '6px',
+                                zIndex: 100,
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                backdropFilter: 'blur(12px)'
                             }}>
-                                📁 {task.project}
-                            </div>
-                        )}
-
-                        {task.assignee && (
-                            <div style={{
-                                fontSize: '11px',
-                                background: 'rgba(59, 130, 246, 0.2)',
-                                color: '#60a5fa',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                            }}>
-                                👤 {task.assignee}
-                            </div>
-                        )}
-
-                        {task.followUp?.dueAt && (
-                            <div style={{
-                                fontSize: '11px',
-                                color: 'var(--text-secondary)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                title: `Review due: ${new Date(task.followUp.dueAt).toLocaleString()}`
-                            }}>
-                                🔔
-                            </div>
-                        )}
-
-
-                        {/* Reminder Button/Dropdown */}
-                        {task.reminding ? (
-                            <FunnyTooltip context="reminder">
-                                <button
-                                    onClick={() => handleDismissReminder(task.id)}
-                                    style={{
-                                        background: 'var(--accent-primary)',
-                                        border: 'none',
-                                        color: 'white',
-                                        cursor: 'pointer',
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '11px',
-                                        fontWeight: 600
-                                    }}
-                                    title="Dismiss Reminder"
-                                >
-                                    Dismiss
-                                </button>
-                            </FunnyTooltip>
-                        ) : (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <select
-                                    value={task.remindAt ? 'active' : ''}
-                                    onChange={(e) => {
-                                        if (e.target.value && e.target.value !== 'active') {
-                                            handleSetReminder(task.id, parseInt(e.target.value));
-                                            e.target.value = '';
-                                        }
-                                    }}
-                                    style={{
-                                        background: 'transparent',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        color: 'var(--text-muted)',
-                                        padding: '4px',
-                                        fontSize: '11px',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer'
-                                    }}
-                                    title="Set Reminder"
-                                >
-                                    <option value="">⏰ Remind</option>
-                                    <option value="active" disabled hidden>Active</option>
-                                    <option value="1">1 min</option>
-                                    <option value="5">5 min</option>
-                                    <option value="15">15 min</option>
-                                    <option value="30">30 min</option>
-                                    <option value="60">1 hour</option>
-                                    <option value="120">2 hours</option>
-                                </select>
-                                {task.remindAt && task.reminderStartedAt && (
-                                    <CircularProgress
-                                        startTime={task.reminderStartedAt}
-                                        endTime={task.remindAt}
-                                        size={20}
-                                    />
-                                )}
-                            </div>
-                        )}
-
-                        {/* Focus Pointer Control */}
-                        <div className="focus-control" style={{ position: 'relative' }}>
-                            <FunnyTooltip context="focus">
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setShowFocusPicker(!showFocusPicker);
+                                        handleSetFocus(task.id, null);
+                                        setShowFocusPicker(false);
                                     }}
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: activeFocusColor || 'var(--text-muted)',
-                                        cursor: 'pointer',
-                                        padding: '4px',
-                                        fontSize: '14px',
-                                        opacity: activeFocusColor || showFocusPicker ? 1 : 0.5
-                                    }}
-                                    title="Set Focus Pointer"
+                                    title="None"
+                                    style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid #555', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#aaa' }}
                                 >
-                                    ➤
+                                    ✕
                                 </button>
-                            </FunnyTooltip>
-                            {showFocusPicker && (
-                                <div className="focus-picker" style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    background: 'rgba(24, 27, 33, 0.95)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '8px',
-                                    padding: '8px',
-                                    display: 'flex',
-                                    gap: '6px',
-                                    zIndex: 100,
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                                    backdropFilter: 'blur(12px)'
-                                }}>
+                                {Object.entries(focusColors).map(([name, color]) => (
                                     <button
+                                        key={name}
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            handleSetFocus(task.id, null);
+                                            handleSetFocus(task.id, name);
                                             setShowFocusPicker(false);
                                         }}
-                                        title="None"
-                                        style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1px solid #555', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#aaa' }}
-                                    >
-                                        ✕
-                                    </button>
-                                    {Object.entries(focusColors).map(([name, color]) => (
-                                        <button
-                                            key={name}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleSetFocus(task.id, name);
-                                                setShowFocusPicker(false);
-                                            }}
-                                            title={name}
-                                            style={{
-                                                width: '20px',
-                                                height: '20px',
-                                                borderRadius: '50%',
-                                                border: 'none',
-                                                background: color,
-                                                cursor: 'pointer',
-                                                boxShadow: task.focusColor === name ? '0 0 0 2px white' : 'none',
-                                                transition: 'transform 0.1s'
-                                            }}
-                                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-                                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-
-                        <FunnyTooltip context="edit">
-                            <button
-                                onClick={() => setEditingTask(task)}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
-                                title="Edit Task"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                            </button>
-                        </FunnyTooltip>
-                        <FunnyTooltip context="delete">
-                            <button
-                                onClick={() => onDeleteTask(task.id)}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--text-muted)',
-                                    cursor: 'pointer',
-                                    padding: '4px',
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}
-                                title="Delete Task"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                            </button>
-                        </FunnyTooltip>
+                                        title={name}
+                                        style={{
+                                            width: '20px',
+                                            height: '20px',
+                                            borderRadius: '50%',
+                                            border: 'none',
+                                            background: color,
+                                            cursor: 'pointer',
+                                            boxShadow: task.focusColor === name ? '0 0 0 2px white' : 'none',
+                                            transition: 'transform 0.1s'
+                                        }}
+                                        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+                                        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
+
+                    <FunnyTooltip context="edit">
+                        <button
+                            onClick={() => setEditingTask(task)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}
+                            title="Edit Task"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                    </FunnyTooltip>
+
+                    <FunnyTooltip context="delete">
+                        <button
+                            onClick={() => onDeleteTask(task.id)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer',
+                                padding: '4px',
+                                display: 'flex',
+                                alignItems: 'center'
+                            }}
+                            title="Delete Task"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </FunnyTooltip>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                    {task.priority !== 'none' ? `Priority: ${task.priority}` : 'No Priority'} • {task.quadrant?.toUpperCase()}
-                </div>
+
+                {/* Deadline Progress Bar & Phrases */}
+                {task.dueDate && (() => {
+                    const now = Date.now();
+                    const created = task.createdAt || now;
+                    const due = new Date(task.dueDate).getTime();
+                    const totalDuration = due - created;
+                    const elapsed = now - created;
+                    const progressPercent = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
+                    const daysLeft = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+
+                    const getDeadlinePhrase = (days) => {
+                        if (days < 0) return "Too little, too late. 💀";
+                        if (days === 0) return "Panic mode: ON. 🚨";
+                        if (days <= 1) return "Do it now or regret it later. ⏳";
+                        if (days <= 3) return "Tick tock, the clock is ticking. ⏰";
+                        if (days <= 7) return "Don't get too comfortable. 👀";
+                        return "Future you will thank you. 🌱";
+                    };
+
+                    return (
+                        <div style={{ marginTop: '8px', width: '100%' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', fontSize: '10px', color: 'var(--text-secondary)' }}>
+                                <span style={{ fontStyle: 'italic', opacity: 0.8 }}>{getDeadlinePhrase(daysLeft)}</span>
+                                <span style={{ fontWeight: 600, color: daysLeft <= 1 ? 'var(--accent-danger)' : 'inherit' }}>
+                                    {daysLeft > 0 ? `${daysLeft} days left` : (daysLeft === 0 ? 'Due Today' : `${Math.abs(daysLeft)} days overdue`)}
+                                </span>
+                            </div>
+                            <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.05)', borderRadius: '2px', overflow: 'hidden' }}>
+                                <div style={{
+                                    width: `${progressPercent}%`,
+                                    height: '100%',
+                                    background: daysLeft < 0 ? 'var(--accent-danger)' : (daysLeft <= 2 ? 'var(--accent-warning)' : 'linear-gradient(90deg, #3b82f6, #8b5cf6)'),
+                                    borderRadius: '2px',
+                                    transition: 'width 1s ease-in-out',
+                                    boxShadow: '0 0 8px rgba(59, 130, 246, 0.3)'
+                                }} />
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
         </div>
     );
@@ -404,7 +515,8 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                         borderRadius: 'var(--radius-md)',
                         // background: 'var(--bg-glass)',
                         background: 'black',
-                        backdropFilter: 'blur(var(--glass-blur))'
+                        backdropFilter: 'blur(var(--glass-blur))',
+                        flexDirection: 'column' // Ensure content stacks correctly
                     }}
                 >
                     {taskContent}

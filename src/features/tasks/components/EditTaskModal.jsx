@@ -249,6 +249,76 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                     color: 'white'
                                 }}
                             />
+
+                            {/* Follow Up Section - Only show if assignee is present */}
+                            {assignee && (
+                                <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                        <label style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>
+                                            🔔 Follow Up
+                                        </label>
+                                        {followUp?.dueAt && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setFollowUp({ ...followUp, dueAt: null })}
+                                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer' }}
+                                            >
+                                                Clear
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                                        {[
+                                            { label: '15m', val: 15 * 60 * 1000 },
+                                            { label: '1h', val: 60 * 60 * 1000 },
+                                            { label: '3h', val: 3 * 60 * 60 * 1000 },
+                                            { label: '1d', val: 24 * 60 * 60 * 1000 },
+                                            { label: '1w', val: 7 * 24 * 60 * 60 * 1000 }
+                                        ].map(opt => (
+                                            <button
+                                                key={opt.label}
+                                                type="button"
+                                                onClick={() => setFollowUp({ ...followUp, dueAt: Date.now() + opt.val, status: 'pending' })}
+                                                style={{
+                                                    background: 'rgba(255,255,255,0.1)',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    padding: '4px 8px',
+                                                    fontSize: '11px',
+                                                    color: 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.2)'}
+                                                onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <input
+                                        type="datetime-local"
+                                        value={followUp?.dueAt ? new Date(followUp.dueAt).toISOString().slice(0, 16) : ''}
+                                        onChange={e => setFollowUp({ ...followUp, dueAt: new Date(e.target.value).getTime(), status: 'pending' })}
+                                        style={{
+                                            width: '100%',
+                                            padding: '6px',
+                                            background: 'rgba(0,0,0,0.2)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '4px',
+                                            color: 'var(--text-secondary)',
+                                            fontSize: '11px'
+                                        }}
+                                    />
+                                    {followUp?.dueAt && (
+                                        <div style={{ fontSize: '10px', color: 'var(--accent-primary)', marginTop: '4px', textAlign: 'right' }}>
+                                            Due: {new Date(followUp.dueAt).toLocaleString()}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 

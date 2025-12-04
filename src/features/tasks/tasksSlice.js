@@ -84,7 +84,10 @@ const tasksSlice = createSlice({
         checkReminders: (state) => {
             const now = Date.now()
             state.items.forEach(task => {
-                if (task.remindAt && task.remindAt <= now && !task.reminding) {
+                const isRemindDue = task.remindAt && task.remindAt <= now && !task.reminding;
+                const isFollowUpDue = task.followUp?.dueAt && task.followUp.dueAt <= now && task.followUp.status === 'pending' && !task.reminding;
+
+                if (isRemindDue || isFollowUpDue) {
                     task.reminding = true
                 }
             })

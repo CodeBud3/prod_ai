@@ -72,7 +72,7 @@ const getSortedTasks = (taskList, sortBy) => {
 };
 
 // --- Reusable Task Section Component ---
-const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus, defaultSort = 'smart', defaultGroup = 'none', sortBy: externalSortBy, setSortBy: externalSetSortBy }) => {
+const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus, onUpdateTask, defaultSort = 'smart', defaultGroup = 'none', sortBy: externalSortBy, setSortBy: externalSetSortBy }) => {
     const [internalSortBy, setInternalSortBy] = useState(defaultSort);
     const [groupBy, setGroupBy] = useState(defaultGroup);
     const [viewFilter, setViewFilter] = useState('all');
@@ -127,6 +127,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
                             getPriorityColor={getPriorityColor}
                             formatTimestamp={formatTimestamp}
                             handleSetFocus={handleSetFocus}
+                            onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
                         />
                     ))}
                 </div>
@@ -168,6 +169,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
                                 getPriorityColor={getPriorityColor}
                                 formatTimestamp={formatTimestamp}
                                 handleSetFocus={handleSetFocus}
+                                onUpdateTask={onUpdateTask}
                             />
                         ))}
                     </div>
@@ -196,6 +198,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
                             getPriorityColor={getPriorityColor}
                             formatTimestamp={formatTimestamp}
                             handleSetFocus={handleSetFocus}
+                            onUpdateTask={onUpdateTask}
                         />
                     ))}
                 </div>
@@ -223,6 +226,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
                             getPriorityColor={getPriorityColor}
                             formatTimestamp={formatTimestamp}
                             handleSetFocus={handleSetFocus}
+                            onUpdateTask={onUpdateTask}
                         />
                     ))}
                 </div>
@@ -242,6 +246,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
                 getPriorityColor={getPriorityColor}
                 formatTimestamp={formatTimestamp}
                 handleSetFocus={handleSetFocus}
+                onUpdateTask={onUpdateTask}
             />
         ));
     };
@@ -488,7 +493,7 @@ export function Dashboard() {
     }
 
     return (
-        <div style={{ width: '100%', maxWidth: '1400px', padding: '20px', display: 'flex', gap: '32px', alignItems: 'flex-start' }}>
+        <div style={{ width: '100%', maxWidth: '98%', padding: '20px', display: 'flex', gap: '32px', alignItems: 'flex-start', margin: '0 auto' }}>
 
             {/* Left Sidebar */}
             <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>
@@ -592,6 +597,7 @@ export function Dashboard() {
                         getPriorityColor={getPriorityColor}
                         formatTimestamp={formatTimestamp}
                         handleSetFocus={handleSetFocus}
+                        onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
                         defaultSort="smart"
                         defaultGroup="project"
                         sortBy={myTasksSort}
@@ -612,6 +618,7 @@ export function Dashboard() {
                         getPriorityColor={getPriorityColor}
                         formatTimestamp={formatTimestamp}
                         handleSetFocus={handleSetFocus}
+                        onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
                         defaultSort="smart"
                         defaultGroup="assignee"
                     />
