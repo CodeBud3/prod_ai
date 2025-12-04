@@ -604,28 +604,39 @@ export function Dashboard() {
                 onSnooze={(taskId, notificationId) => {
                     const task = tasks.find(t => t.id === taskId);
                     if (task) {
-                        const updatedTask = {
-                            ...task,
-                            followUp: {
-                                ...task.followUp,
-                                dueAt: Date.now() + 60 * 60 * 1000 // 1 hour
+                        dispatch(updateTask({
+                            id: task.id,
+                            updates: {
+                                reminding: false,
+                                followUp: task.assignee ? {
+                                    ...(task.followUp || {}),
+                                    dueAt: Date.now() + 60 * 60 * 1000, // 1 hour
+                                    startedAt: Date.now(),
+                                    status: 'pending'
+                                } : task.followUp,
+                                remindAt: !task.assignee ? Date.now() + 60 * 60 * 1000 : task.remindAt,
+                                reminderStartedAt: !task.assignee ? Date.now() : task.reminderStartedAt
                             }
-                        };
-                        dispatch(updateTask({ id: task.id, updates: updatedTask }));
+                        }));
                     }
                     dispatch(removeNotification(notificationId));
                 }}
                 onComplete={(taskId, notificationId) => {
                     const task = tasks.find(t => t.id === taskId);
                     if (task) {
-                        const updatedTask = {
-                            ...task,
-                            followUp: {
-                                ...task.followUp,
-                                status: 'completed'
+                        dispatch(updateTask({
+                            id: task.id,
+                            updates: {
+                                reminding: false,
+                                followUp: task.assignee ? {
+                                    ...(task.followUp || {}),
+                                    status: 'completed',
+                                    dueAt: null
+                                } : task.followUp,
+                                remindAt: !task.assignee ? null : task.remindAt,
+                                reminderStartedAt: !task.assignee ? null : task.reminderStartedAt
                             }
-                        };
-                        dispatch(updateTask({ id: task.id, updates: updatedTask }));
+                        }));
                     }
                     dispatch(removeNotification(notificationId));
                 }}
