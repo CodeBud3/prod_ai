@@ -1,67 +1,46 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FunnyTooltip } from '../../../components/ui';
-import { parseDate } from '../../../utils/dateParser';
+import { parseTaskInput } from '../../../utils/nlp';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
     const [priority, setPriority] = useState('none'); // none, low, medium, high
     const [dueDate, setDueDate] = useState('');
-    const [dueTime, setDueTime] = useState(''); // New state for time
+    const [dueTime, setDueTime] = useState('');
+    const [assignee, setAssignee] = useState('');
     const [tags, setTags] = useState([]);
     const [showTagInput, setShowTagInput] = useState(false);
     const [tagInput, setTagInput] = useState('');
     const [project, setProject] = useState('');
-    const [suggestedDate, setSuggestedDate] = useState(null); // { date, text, index, length }
+    const [parsedTask, setParsedTask] = useState(null);
     const titleInputRef = useRef(null);
 
     const handleTitleChange = (e) => {
         const newTitle = e.target.value;
         setTitle(newTitle);
 
-        // Parse date from title
-        const result = parseDate(newTitle);
-        if (result) {
-            setSuggestedDate(result);
-        } else {
-            setSuggestedDate(null);
-        }
+        // Parse input using NLP
+        const result = parseTaskInput(newTitle);
+        setParsedTask(result);
     };
 
     const applySuggestion = () => {
-        if (!suggestedDate) return;
+        if (!parsedTask) return;
 
-        const { date, text } = suggestedDate;
+        const { assignee: newAssignee, priority: newPriority, dueDate: newDueDate, dueTime: newDueTime, title: cleanTitle } = parsedTask;
 
-        // Format date for input (YYYY-MM-DD)
-        const dateStr = date.getFullYear() + '-' +
-            String(date.getMonth() + 1).padStart(2, '0') + '-' +
-            String(date.getDate()).padStart(2, '0');
+        if (newAssignee) setAssignee(newAssignee);
+        if (newPriority !== 'none') setPriority(newPriority);
+        if (newDueDate) setDueDate(newDueDate);
+        if (newDueTime) setDueTime(newDueTime);
 
-        setDueDate(dateStr);
-
-        // Smart Time Defaulting
-        // If the text explicitly mentions time (e.g. "at 5pm", "10:00"), use the parsed time.
-        // Otherwise, default to End of Day (17:00) because "no one works in midnight".
-        const hasTime = /:|am|pm|morning|afternoon|evening|night|noon|midnight/i.test(text);
-
-        if (hasTime) {
-            const timeStr = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-            setDueTime(timeStr);
-        } else {
-            setDueTime('17:00'); // Default to 5 PM
-        }
-
-        // Remove the parsed text from the title
-        let newTitle = title.replace(text, '').replace(/\s{2,}/g, ' ').trim();
-        setTitle(newTitle);
-        setSuggestedDate(null);
-
-        // Focus back on input
+        setTitle(cleanTitle);
+        setParsedTask(null);
         titleInputRef.current?.focus();
     };
 
     const dismissSuggestion = () => {
-        setSuggestedDate(null);
+        setParsedTask(null);
     };
 
     const handleSubmit = (e) => {
@@ -71,24 +50,19 @@ export function QuickAdd({ onAdd }) {
         let finalDueDate = dueDate;
         let finalDueTime = dueTime;
         let finalTitle = title;
+        let finalPriority = priority;
+        let finalAssignee = assignee;
 
         // Handle auto-application of suggestion on submit (if user didn't press Tab)
-        if (suggestedDate) {
-            const { date, text } = suggestedDate;
-            const dateStr = date.getFullYear() + '-' +
-                String(date.getMonth() + 1).padStart(2, '0') + '-' +
-                String(date.getDate()).padStart(2, '0');
-            finalDueDate = dateStr;
+        if (parsedTask) {
+            const { assignee: pAssignee, priority: pPriority, dueDate: pDueDate, dueTime: pDueTime, title: pTitle } = parsedTask;
 
-            // Smart Time Defaulting for auto-submit
-            const hasTime = /:|am|pm|morning|afternoon|evening|night|noon|midnight/i.test(text);
-            if (hasTime) {
-                finalDueTime = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-            } else if (!finalDueTime) {
-                finalDueTime = '17:00'; // Default to 5 PM if no time specified
-            }
+            if (pAssignee) finalAssignee = pAssignee;
+            if (pPriority !== 'none') finalPriority = pPriority;
+            if (pDueDate) finalDueDate = pDueDate;
+            if (pDueTime) finalDueTime = pDueTime;
 
-            finalTitle = title.replace(text, '').replace(/\s{2,}/g, ' ').trim();
+            finalTitle = pTitle;
         }
 
         // Construct final due date string
@@ -99,10 +73,11 @@ export function QuickAdd({ onAdd }) {
 
         onAdd({
             title: finalTitle,
-            priority,
+            priority: finalPriority,
             dueDate: finalDueDateTime || null,
             tags,
-            project: project.trim() || null
+            project: project.trim() || null,
+            assignee: finalAssignee || null
         });
 
         // Reset
@@ -110,11 +85,12 @@ export function QuickAdd({ onAdd }) {
         setPriority('none');
         setDueDate('');
         setDueTime('');
+        setAssignee('');
         setTags([]);
         setProject('');
         setShowTagInput(false);
         setTagInput('');
-        setSuggestedDate(null);
+        setParsedTask(null);
         titleInputRef.current?.focus();
     };
 
@@ -148,38 +124,42 @@ export function QuickAdd({ onAdd }) {
                     value={title}
                     onChange={handleTitleChange}
                     onKeyDown={(e) => {
-                        if (e.key === 'Tab' && suggestedDate) {
+                        if (e.key === 'Tab' && parsedTask) {
                             e.preventDefault();
                             applySuggestion();
                         }
                     }}
-                    placeholder="Add a new task..."
+                    placeholder="Add a new task... (e.g. 'Call John tomorrow urgent')"
                     style={{ flex: 1, background: 'transparent', border: 'none', padding: '8px', color: 'var(--text-primary)', fontSize: '16px' }}
                     autoFocus
                 />
 
-                {suggestedDate && (
+                {parsedTask && (
                     <div
                         style={{
                             position: 'absolute',
-                            bottom: '-30px',
+                            bottom: '-35px',
                             left: '8px',
                             background: 'var(--accent-primary)',
                             color: 'white',
-                            padding: '4px 12px',
+                            padding: '6px 12px',
                             borderRadius: '16px',
                             fontSize: '12px',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
+                            gap: '12px',
                             cursor: 'pointer',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                             zIndex: 10
                         }}
                         onClick={applySuggestion}
                     >
-                        <span>📅 {suggestedDate.date.toLocaleDateString()} {suggestedDate.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <span style={{ opacity: 0.7, fontSize: '10px' }}>(Tab to apply)</span>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            {parsedTask.dueDate && <span>📅 {parsedTask.dueDate} {parsedTask.dueTime}</span>}
+                            {parsedTask.assignee && <span>👤 {parsedTask.assignee}</span>}
+                            {parsedTask.priority !== 'none' && <span>🔥 {parsedTask.priority}</span>}
+                        </div>
+                        <span style={{ opacity: 0.7, fontSize: '10px', borderLeft: '1px solid rgba(255,255,255,0.3)', paddingLeft: '8px' }}>Tab to apply</span>
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); dismissSuggestion(); }}
@@ -213,7 +193,7 @@ export function QuickAdd({ onAdd }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-                {/* Priority Selector - Keyboard Accessible */}
+                {/* Priority Selector */}
                 <div role="radiogroup" aria-label="Priority" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginRight: '4px' }}>Priority:</span>
                     {priorityConfig.map(p => (
@@ -224,12 +204,6 @@ export function QuickAdd({ onAdd }) {
                                 aria-checked={priority === p.id}
                                 aria-label={p.label}
                                 onClick={() => setPriority(p.id)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        setPriority(p.id);
-                                    }
-                                }}
                                 style={{
                                     width: '32px',
                                     height: '32px',
@@ -284,8 +258,30 @@ export function QuickAdd({ onAdd }) {
                     />
                 </div>
 
-                {/* Tag Controls */}
+                {/* Assignee & Tags */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {assignee && (
+                        <span style={{
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            color: '#60a5fa'
+                        }}>
+                            👤 {assignee}
+                            <button
+                                type="button"
+                                onClick={() => setAssignee('')}
+                                style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: 0, fontSize: '14px' }}
+                            >
+                                ×
+                            </button>
+                        </span>
+                    )}
+
                     {tags.map(tag => (
                         <span key={tag} style={{
                             background: 'rgba(255,255,255,0.1)',

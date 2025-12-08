@@ -19,6 +19,8 @@
     "chrono-node": "^2.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "compromise": "^14.14.4",
+    "compromise-dates": "^3.7.1",
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.555.0",
     "motion": "^12.23.25",
