@@ -12,106 +12,128 @@ const PRIORITY_MAP = {
     'critical': 'critical',
     'high priority': 'high',
     'important': 'high',
+    'high': 'high',
     'medium priority': 'medium',
+    'medium': 'medium',
     'low priority': 'low',
+    'low': 'low',
     'whenever': 'low'
 };
 
 export function parseTaskInput(text) {
     if (!text) return null;
 
-    const doc = nlp(text);
     const result = {
         title: text,
         assignee: null,
+        project: null,
         priority: 'none',
         dueDate: null,
         dueTime: null,
-        tags: [],
-        extractedText: [] // Parts of text that were extracted
+        duration: null,
+        extractedText: []
     };
 
-    // 1. Extract Assignees (People)
-    // We look for "Call [Person]", "Meeting with [Person]", "Assign to [Person]"
-    // Or just names if they are capitalized and look like people.
-    // Compromise is good at this.
-    const people = doc.people().out('array');
-    if (people.length > 0) {
-        // Simple heuristic: take the first person found
-        // We might want to be careful not to capture "John" in "John's report" if it's the object.
-        // But for QuickAdd, assuming the first person is the assignee is a reasonable start.
-        // However, "Call John" -> Assignee: John? Or is the task "Call John"?
-        // If the task starts with a verb like "Call", "Email", "Meet", the person is likely the object/subject of the task, NOT necessarily the assignee.
-        // BUT, if the user types "Assign John to fix bug", then John is assignee.
-        // OR "Fix bug @John".
+    let workingText = text;
 
-        // Let's look for explicit "assign to [Person]" or "@[Person]" patterns first?
-        // Compromise doesn't handle "@" well by default as a "Person" tag trigger, but it might.
+    // Strip special markers for date parsing (they might interfere with chrono)
+    const textForDateParsing = text
+        .replace(/@\w+/g, '')           // Remove @assignee
+        .replace(/#[\w-]+/g, '')        // Remove #project
+        .replace(/!(critical|high|medium|low)/gi, '')  // Remove !priority
+        .replace(/~\d+(?:\.\d+)?[hmd]/gi, '')  // Remove ~duration
+        .replace(/\s+/g, ' ')           // Normalize spaces
+        .trim();
 
-        // For now, let's stick to the user request: "extract assignee... from what user types".
-        // If I type "John to finish report", John is likely assignee.
-        // If I type "Finish report John", John might be assignee.
-        // If I type "Call John", John is part of the title.
-
-        // Let's try to be smart:
-        // If the name is at the start or end, or preceded by "by", "for", "with" (maybe not with).
-        // Actually, let's just capture people and let the user confirm via suggestion.
-        // We will return the *suggestion*, not auto-apply immediately without user intent (which QuickAdd handles via Tab).
-
-        result.assignee = people[0];
-        result.extractedText.push(people[0]);
-    }
-
-    // 2. Extract Priority
-    // Check for keywords
-    for (const [keyword, level] of Object.entries(PRIORITY_MAP)) {
-        if (doc.has(keyword)) {
-            result.priority = level;
-            result.extractedText.push(keyword);
-            break; // Take first match
-        }
-    }
-
-    // 3. Extract Dates (using Chrono for robustness as it handles "next friday" etc well)
-    // We use chrono.parse to get the text range too.
-    const dateResults = chrono.parse(text);
+    // 1. FIRST extract dates using Chrono (on cleaned text)
+    const dateResults = chrono.parse(textForDateParsing, new Date(), { forwardDate: true });
     if (dateResults.length > 0) {
         const dateResult = dateResults[0];
         const date = dateResult.start.date();
 
-        // Format date YYYY-MM-DD
         result.dueDate = date.getFullYear() + '-' +
             String(date.getMonth() + 1).padStart(2, '0') + '-' +
             String(date.getDate()).padStart(2, '0');
 
-        // Check for time
         if (dateResult.start.isCertain('hour')) {
-            result.dueTime = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-        } else {
-            // Default to 5 PM if no time specified (as per previous feature)
-            // But only if we are "suggesting". The caller can decide default.
-            // We'll return null for dueTime if not found.
+            const hour = dateResult.start.get('hour');
+            const minute = dateResult.start.get('minute') || 0;
+            result.dueTime = String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
         }
 
-        result.extractedText.push(dateResult.text);
+        // Find and remove the original date text from working text
+        // Try to match the parsed text in the original
+        const dateText = dateResult.text;
+        result.extractedText.push(dateText);
+        workingText = workingText.replace(new RegExp(dateText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), '');
     }
 
-    // 4. Clean Title
-    // Remove extracted parts from title
-    let cleanTitle = text;
-    result.extractedText.forEach(part => {
-        // Case insensitive replace, but be careful not to replace parts of words
-        // Using a simple replace for now, can be improved.
-        cleanTitle = cleanTitle.replace(part, '');
-    });
+    // 2. Extract @assignee (e.g., "@john", "@John Smith")
+    const assigneeMatch = workingText.match(/@(\w+(?:\s+\w+)?)/);
+    if (assigneeMatch) {
+        result.assignee = assigneeMatch[1];
+        result.extractedText.push(assigneeMatch[0]);
+        workingText = workingText.replace(assigneeMatch[0], '');
+    }
 
-    // Clean up extra spaces
-    result.title = cleanTitle.replace(/\s{2,}/g, ' ').trim();
+    // 3. Extract #project (e.g., "#MARS", "#project-name")
+    const projectMatch = workingText.match(/#([\w-]+)/);
+    if (projectMatch) {
+        result.project = projectMatch[1];
+        result.extractedText.push(projectMatch[0]);
+        workingText = workingText.replace(projectMatch[0], '');
+    }
 
-    // If nothing extracted, return null to indicate no suggestion needed
-    if (!result.assignee && result.priority === 'none' && !result.dueDate) {
+    // 4. Extract !priority (e.g., "!critical", "!high")
+    const priorityMatch = workingText.match(/!(critical|high|medium|low)/i);
+    if (priorityMatch) {
+        result.priority = priorityMatch[1].toLowerCase();
+        result.extractedText.push(priorityMatch[0]);
+        workingText = workingText.replace(priorityMatch[0], '');
+    }
+
+    // 5. Extract ~duration (e.g., "~1h", "~30m", "~2d")
+    const durationMatch = workingText.match(/~(\d+(?:\.\d+)?)(h|m|d)/i);
+    if (durationMatch) {
+        result.duration = durationMatch[0].slice(1); // Remove the ~
+        result.extractedText.push(durationMatch[0]);
+        workingText = workingText.replace(durationMatch[0], '');
+    }
+
+    // 6. Extract priority keywords if not found via !syntax
+    if (result.priority === 'none') {
+        const doc = nlp(workingText);
+        for (const [keyword, level] of Object.entries(PRIORITY_MAP)) {
+            if (doc.has(keyword)) {
+                result.priority = level;
+                result.extractedText.push(keyword);
+                const keywordRegex = new RegExp(`\\b${keyword}\\b`, 'gi');
+                workingText = workingText.replace(keywordRegex, '');
+                break;
+            }
+        }
+    }
+
+    // 7. Clean title - remove all extracted parts and clean up whitespace
+    let cleanTitle = workingText
+        .replace(/\s{2,}/g, ' ')  // Multiple spaces to single
+        .replace(/^[\s"']+|[\s"']+$/g, '') // Trim + remove leading/trailing quotes
+        .replace(/^[,\s]+|[,\s]+$/g, '') // Remove leading/trailing commas
+        // Remove leftover time patterns that might have been missed or partially matched
+        // e.g. ":50 pm", "at 5pm", "5pm" (if not captured by chrono for some reason)
+        .replace(/\b(?:at\s+)?\d{1,2}:\d{2}(?:\s?[ap]m)?\b/gi, '')
+        .replace(/(?:^|\s):\d{2}(?:\s?[ap]m)?\b/gi, '') // Matches :50 pm (colon start)
+        .replace(/\b\d{1,2}\s?[ap]m\b/gi, '') // Matches 5pm, 5 pm
+        .replace(/\s{2,}/g, ' ') // Clean up spaces again
+        .trim();
+
+    result.title = cleanTitle || text; // Fallback to original if empty
+
+    // Only return if something was extracted
+    if (!result.assignee && !result.project && result.priority === 'none' && !result.dueDate && !result.duration) {
         return null;
     }
 
     return result;
 }
+

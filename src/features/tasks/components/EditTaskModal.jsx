@@ -6,7 +6,20 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     const [description, setDescription] = useState(task.description || '');
     const [priority, setPriority] = useState(task.priority || 'none');
     // Ensure dueDate is in datetime-local format (YYYY-MM-DDTHH:mm)
-    const [dueDate, setDueDate] = useState(task.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : '');
+    const [dueDate, setDueDate] = useState(() => {
+        if (!task.dueDate) return '';
+        // Check if it's already in the right format (YYYY-MM-DDTHH:mm)
+        if (typeof task.dueDate === 'string' && task.dueDate.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+            return task.dueDate;
+        }
+        const d = new Date(task.dueDate);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    });
     const [tags, setTags] = useState(task.tags || []);
     const [tagInput, setTagInput] = useState('');
     const [assignee, setAssignee] = useState(task.assignee || '');
