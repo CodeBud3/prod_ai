@@ -417,6 +417,19 @@ export function Dashboard() {
                     }
                 });
             }
+
+            // Check for active reminders (re-trigger notification if missing, e.g. after reload)
+            const activeReminders = tasks.filter(task => task.reminding);
+            if (activeReminders.length > 0) {
+                activeReminders.forEach(task => {
+                    if (!notifications.some(n => n.taskId === task.id)) {
+                        dispatch(addNotification({
+                            taskId: task.id,
+                            message: `${task.title} (Reminder)`
+                        }));
+                    }
+                });
+            }
         }, 5000); // Check every 5 seconds
 
         return () => clearInterval(interval);
@@ -530,6 +543,13 @@ export function Dashboard() {
 
     return (
         <div style={{ width: '100%', maxWidth: '98%', padding: '20px', display: 'flex', gap: '32px', alignItems: 'flex-start', margin: '0 auto' }}>
+            {/* Hidden iframe to unlock Chrome autoplay - plays silent audio on page load */}
+            <iframe
+                src="/silence.mp3"
+                allow="autoplay"
+                style={{ display: 'none' }}
+                title="Audio unlock"
+            />
 
             {/* Left Sidebar */}
             <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>

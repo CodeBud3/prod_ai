@@ -3,15 +3,32 @@ import React, { useEffect } from 'react';
 export function NotificationToast({ notification, onDismiss, onSnooze, onComplete }) {
     useEffect(() => {
         // Play alarm sound
-        const audio = new Audio('/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3');
+        const soundPath = '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3';
+        const audio = new Audio(soundPath);
         audio.loop = true;
 
-        // Attempt to play (might be blocked by browser policy if no interaction, but we try)
-        audio.play().catch(err => console.warn("Audio playback failed:", err));
+        const playAudio = async () => {
+            try {
+                await audio.play();
+                console.log("Audio playing successfully:", soundPath);
+            } catch (err) {
+                console.error("Audio playback failed:", err);
+                // Retry once on user interaction if needed (handled by browser policy usually)
+            }
+        };
+
+        // Ensure audio is loaded before playing
+        audio.addEventListener('canplaythrough', playAudio, { once: true });
+        audio.load();
+
+        // Fallback: if canplaythrough doesn't fire quickly, try playing anyway
+        const timer = setTimeout(playAudio, 1000);
 
         return () => {
+            clearTimeout(timer);
             audio.pause();
             audio.currentTime = 0;
+            audio.removeEventListener('canplaythrough', playAudio);
         };
     }, []);
 

@@ -302,6 +302,8 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                                 {(task.followUp?.dueAt || task.remindAt) ? '🔔 Active' : (task.assignee ? '🔔 Follow Up' : '🔔 Revisit')}
                             </option>
                             <optgroup label="Quick">
+                                <option value="0.5">30s</option>
+                                <option value="1">1m</option>
                                 <option value="15">15m</option>
                                 <option value="60">1h</option>
                                 <option value="180">3h</option>

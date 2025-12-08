@@ -1,6 +1,44 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export function NotificationPanel({ notifications, onDismiss, onSnooze, onComplete }) {
+    const audioRef = useRef(null);
+    const [soundPlaying, setSoundPlaying] = useState(false);
+
+    // Initialize audio element once (and keep it alive even when notifications are empty)
+    useEffect(() => {
+        if (!audioRef.current) {
+            audioRef.current = new Audio('/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3');
+            audioRef.current.loop = true;
+        }
+
+        return () => {
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.currentTime = 0;
+            }
+        };
+    }, []);
+
+    // Play/pause audio based on notifications - ALWAYS run this effect, even when empty
+    useEffect(() => {
+        if (!audioRef.current) return;
+
+        if (notifications && notifications.length > 0) {
+            audioRef.current.play()
+                .then(() => setSoundPlaying(true))
+                .catch(err => {
+                    console.warn("Audio playback failed:", err.message);
+                    setSoundPlaying(false);
+                });
+        } else {
+            // CRITICAL: Stop the audio when notifications are cleared
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setSoundPlaying(false);
+        }
+    }, [notifications]);
+
+    // Only return null AFTER the audio effect has had a chance to stop the audio
     if (!notifications || notifications.length === 0) return null;
 
     return (
@@ -20,8 +58,25 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 pointerEvents: 'auto',
                 display: 'flex',
                 justifyContent: 'flex-end',
-                paddingRight: '8px'
+                paddingRight: '8px',
+                gap: '8px',
+                alignItems: 'center'
             }}>
+                {soundPlaying && (
+                    <span style={{
+                        background: 'var(--accent-success)',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                    }}>
+                        🔊 Alarm Active
+                    </span>
+                )}
                 <span style={{
                     background: 'var(--accent-primary)',
                     color: 'white',
