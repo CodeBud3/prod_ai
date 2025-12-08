@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-export function FunnyTooltip({ children, id, context = 'default', type = 'default' }) {
+export function FunnyTooltip({ children, id, context = 'default', type = 'default', content }) {
     const [visible, setVisible] = useState(false);
     const [message, setMessage] = useState('');
     const timerRef = useRef(null);
@@ -73,9 +73,13 @@ export function FunnyTooltip({ children, id, context = 'default', type = 'defaul
 
     const handleMouseEnter = () => {
         timerRef.current = setTimeout(() => {
-            const pool = messages[context] || messages.default;
-            const randomMsg = pool[Math.floor(Math.random() * pool.length)];
-            setMessage(randomMsg);
+            if (content) {
+                setMessage(content);
+            } else {
+                const pool = messages[context] || messages.default;
+                const randomMsg = pool[Math.floor(Math.random() * pool.length)];
+                setMessage(randomMsg);
+            }
             setVisible(true);
         }, 1000); // 1 second delay for "long hover"
     };

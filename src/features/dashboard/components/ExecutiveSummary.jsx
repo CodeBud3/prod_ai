@@ -42,29 +42,24 @@ export function ExecutiveSummary({ vertical = false }) {
     };
 
     const SummaryCard = ({ title, count, items, color, icon }) => (
-        <div className="glass-panel" style={cardStyle}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div className="glass-panel" style={{ ...cardStyle, maxHeight: '300px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexShrink: 0 }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span>{icon}</span> {title}
                 </h3>
                 <span style={{ fontSize: '20px', fontWeight: 700, color: color }}>{count}</span>
             </div>
 
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '150px' }}>
+            <div className="custom-scrollbar" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', paddingRight: '4px' }}>
                 {items && items.length > 0 ? (
-                    items.slice(0, 3).map(task => (
-                        <div key={task.id} style={{ fontSize: '13px', padding: '6px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', borderLeft: `2px solid ${color}` }}>
+                    items.map(task => (
+                        <div key={task.id} style={{ fontSize: '13px', padding: '8px', background: 'rgba(255,255,255,0.03)', borderRadius: '6px', borderLeft: `2px solid ${color}`, flexShrink: 0 }}>
                             <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.title}</div>
                             {task.dueDate && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>Due: {task.dueDate}</div>}
                         </div>
                     ))
                 ) : (
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Nothing here yet.</div>
-                )}
-                {items && items.length > 3 && (
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '4px' }}>
-                        + {items.length - 3} more
-                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '8px' }}>Nothing here yet.</div>
                 )}
             </div>
         </div>

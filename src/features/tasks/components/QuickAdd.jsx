@@ -142,10 +142,10 @@ export function QuickAdd({ onAdd }) {
     };
 
     const priorityConfig = [
-        { id: 'low', color: 'rgba(255,255,255,0.2)', label: 'Low Priority' },
-        { id: 'medium', color: 'var(--accent-warning)', label: 'Medium Priority' },
-        { id: 'high', color: '#f97316', label: 'High Priority' },
-        { id: 'critical', color: 'var(--accent-danger)', label: 'Critical Priority' }
+        { id: 'low', color: 'rgba(255,255,255,0.2)', label: '🦥 Meh... Do it whenever. Netflix first.' },
+        { id: 'medium', color: 'var(--accent-warning)', label: '⚡ Should probably do this... eventually.' },
+        { id: 'high', color: '#f97316', label: '🔥 Boss is asking. Pretend to be busy!' },
+        { id: 'critical', color: 'var(--accent-danger)', label: '💀 DROP EVERYTHING. Code red. Panic mode!' }
     ];
 
     return (
