@@ -389,6 +389,7 @@ export function Dashboard() {
     const [editingTask, setEditingTask] = useState(null);
     const [showPrioritization, setShowPrioritization] = useState(false);
     const [myTasksSort, setMyTasksSort] = useState('smart'); // Lifted state for My Tasks sort
+    const [activeFilter, setActiveFilter] = useState(null); // Sidebar filter: 'yesterday', 'today', 'actions', 'delegations', 'decisions', 'tomorrow', 'horizon'
 
     // Check for reminders
     useEffect(() => {
@@ -506,6 +507,69 @@ export function Dashboard() {
     const myTasks = tasks.filter(t => !t.assignee || t.assignee.trim() === '');
     const delegatedTasks = tasks.filter(t => t.assignee && t.assignee.trim() !== '');
 
+    // Apply sidebar filter
+    const getFilteredTasks = (taskList, isDelegated = false) => {
+        if (!activeFilter) return taskList;
+
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfterTomorrow = new Date(today);
+        dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+
+        switch (activeFilter) {
+            case 'yesterday':
+                // Tasks completed yesterday
+                const yesterday = new Date(today);
+                yesterday.setDate(yesterday.getDate() - 1);
+                return taskList.filter(t => {
+                    if (t.status !== 'done' || !t.completedAt) return false;
+                    const completedDate = new Date(t.completedAt);
+                    return completedDate >= yesterday && completedDate < today;
+                });
+            case 'today':
+                // Top priority tasks for today (critical/high priority or due today)
+                return taskList.filter(t => {
+                    if (t.status === 'done') return false;
+                    if (t.priority === 'critical' || t.priority === 'high') return true;
+                    if (t.dueDate) {
+                        const dueDate = new Date(t.dueDate);
+                        return dueDate >= today && dueDate < tomorrow;
+                    }
+                    return false;
+                });
+            case 'actions':
+                // Only my tasks (already filtered)
+                return isDelegated ? [] : taskList.filter(t => t.status !== 'done');
+            case 'delegations':
+                // Only delegated tasks
+                return isDelegated ? taskList.filter(t => t.status !== 'done') : [];
+            case 'decisions':
+                // Tasks marked as decisions
+                return taskList.filter(t => t.status !== 'done' && t.project?.toLowerCase().includes('decision'));
+            case 'tomorrow':
+                // Tasks due tomorrow
+                return taskList.filter(t => {
+                    if (t.status === 'done' || !t.dueDate) return false;
+                    const dueDate = new Date(t.dueDate);
+                    return dueDate >= tomorrow && dueDate < dayAfterTomorrow;
+                });
+            case 'horizon':
+                // Tasks due after tomorrow
+                return taskList.filter(t => {
+                    if (t.status === 'done' || !t.dueDate) return false;
+                    const dueDate = new Date(t.dueDate);
+                    return dueDate >= dayAfterTomorrow;
+                });
+            default:
+                return taskList;
+        }
+    };
+
+    const filteredMyTasks = getFilteredTasks(myTasks, false);
+    const filteredDelegatedTasks = getFilteredTasks(delegatedTasks, true);
+
     // Get sorted my tasks for Focus Mode
     const sortedMyTasks = getSortedTasks(myTasks.filter(t => t.status !== 'done'), myTasksSort);
     const currentTask = sortedMyTasks[0]; // Use first task from sorted list
@@ -553,7 +617,11 @@ export function Dashboard() {
 
             {/* Left Sidebar */}
             <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>
-                <ExecutiveSummary vertical={true} />
+                <ExecutiveSummary
+                    vertical={true}
+                    activeFilter={activeFilter}
+                    onFilterChange={(filter) => setActiveFilter(activeFilter === filter ? null : filter)}
+                />
             </div>
 
             {/* Main Content */}
@@ -601,13 +669,43 @@ export function Dashboard() {
                 <QuickAdd onAdd={handleAddTask} />
 
                 {/* Split View Grid */}
+                {activeFilter && (
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        marginBottom: '16px',
+                        padding: '12px 16px',
+                        background: 'rgba(139, 92, 246, 0.1)',
+                        borderRadius: '8px',
+                        border: '1px solid var(--accent-primary)'
+                    }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                            Filtering: <strong style={{ color: 'var(--accent-primary)' }}>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</strong>
+                        </span>
+                        <button
+                            onClick={() => setActiveFilter(null)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                padding: '0 4px'
+                            }}
+                            title="Clear filter"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                     {/* My Tasks Column */}
                     <TaskSection
-                        title="My Tasks"
+                        title={activeFilter ? `My Tasks (${filteredMyTasks.length} filtered)` : "My Tasks"}
                         icon="👤"
-                        tasks={myTasks}
-                        count={myTasks.length}
+                        tasks={filteredMyTasks}
+                        count={filteredMyTasks.length}
                         onToggleTask={handleToggleTask}
                         setEditingTask={setEditingTask}
                         handleSetReminder={handleSetReminder}
@@ -625,10 +723,10 @@ export function Dashboard() {
 
                     {/* Assigned to Others Column */}
                     <TaskSection
-                        title="Assigned to Others"
+                        title={activeFilter ? `Assigned to Others (${filteredDelegatedTasks.length} filtered)` : "Assigned to Others"}
                         icon="👥"
-                        tasks={delegatedTasks}
-                        count={delegatedTasks.length}
+                        tasks={filteredDelegatedTasks}
+                        count={filteredDelegatedTasks.length}
                         onToggleTask={handleToggleTask}
                         setEditingTask={setEditingTask}
                         handleSetReminder={handleSetReminder}
