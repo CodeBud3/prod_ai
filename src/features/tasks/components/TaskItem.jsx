@@ -152,7 +152,7 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
                     {/* Priority */}
                     <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                        {task.priority !== 'none' ? `Priority: ${task.priority}` : 'No Priority'} • {task.quadrant?.toUpperCase()}
+                        {(task.priority && task.priority !== 'none') ? `Priority: ${task.priority}` : 'No Priority'} • {task.quadrant?.toUpperCase()}
                     </div>
                 </div>
 

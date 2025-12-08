@@ -683,6 +683,22 @@ export function Dashboard() {
                     onClose={() => setShowPrioritization(false)}
                 />
             )}
+            {/* Storage Status Footer */}
+            <div style={{
+                position: 'fixed',
+                bottom: '10px',
+                right: '10px',
+                fontSize: '10px',
+                color: 'var(--text-muted)',
+                opacity: 0.5,
+                pointerEvents: 'none',
+                display: 'flex',
+                gap: '8px',
+                zIndex: 1000
+            }}>
+                <span>Storage: {window.indexedDB ? 'IndexedDB (Active)' : 'LocalStorage (Fallback)'}</span>
+                <span>v1.2</span>
+            </div>
         </div>
     );
 }

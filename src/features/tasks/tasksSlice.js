@@ -25,11 +25,23 @@ const tasksSlice = createSlice({
     initialState,
     reducers: {
         addTask: (state, action) => {
-            state.items.push(action.payload)
+            const task = {
+                ...action.payload,
+                priority: action.payload.priority || 'none',
+                status: action.payload.status || 'todo',
+                createdAt: action.payload.createdAt || Date.now()
+            };
+            state.items.push(task);
         },
 
         bulkAddTasks: (state, action) => {
-            state.items = [...state.items, ...action.payload]
+            const tasks = action.payload.map(t => ({
+                ...t,
+                priority: t.priority || 'none',
+                status: t.status || 'todo',
+                createdAt: t.createdAt || Date.now()
+            }));
+            state.items = [...state.items, ...tasks];
         },
 
         updateTask: (state, action) => {
@@ -37,6 +49,10 @@ const tasksSlice = createSlice({
             const index = state.items.findIndex(t => t.id === id)
             if (index !== -1) {
                 state.items[index] = { ...state.items[index], ...updates }
+                // Ensure priority doesn't become undefined if explicitly set to null/undefined in updates (though unlikely)
+                if (state.items[index].priority === undefined) {
+                    state.items[index].priority = 'none';
+                }
             }
         },
 
