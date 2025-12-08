@@ -83,11 +83,47 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
 
     // View Filtering
     const getFilteredTasks = (taskList) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const endOfTomorrow = new Date(tomorrow);
+        endOfTomorrow.setHours(23, 59, 59, 999);
+
         switch (viewFilter) {
             case 'todo':
                 return taskList.filter(t => t.status !== 'done');
             case 'completed':
                 return taskList.filter(t => t.status === 'done');
+            case 'focus':
+                return taskList.filter(t => {
+                    if (t.status === 'done') return false;
+                    // High/Critical priority
+                    if (t.priority === 'high' || t.priority === 'critical') return true;
+                    // Due today
+                    if (t.dueDate) {
+                        const due = new Date(t.dueDate);
+                        return due >= today && due <= endOfToday;
+                    }
+                    return false;
+                });
+            case 'tomorrow':
+                return taskList.filter(t => {
+                    if (t.status === 'done') return false;
+                    if (!t.dueDate) return false;
+                    const due = new Date(t.dueDate);
+                    return due >= tomorrow && due <= endOfTomorrow;
+                });
+            case 'horizon':
+                return taskList.filter(t => {
+                    if (t.status === 'done') return false;
+                    if (!t.dueDate) return false;
+                    const due = new Date(t.dueDate);
+                    return due > endOfTomorrow;
+                });
             case 'all':
             default:
                 return taskList;
@@ -265,7 +301,7 @@ const TaskSection = ({ title, icon, tasks, count, onToggleTask, setEditingTask, 
             {/* Controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', gap: '4px' }}>
-                    {['all', 'todo', 'completed'].map(filter => (
+                    {['all', 'todo', 'focus', 'tomorrow', 'horizon', 'completed'].map(filter => (
                         <button
                             key={filter}
                             onClick={() => setViewFilter(filter)}
