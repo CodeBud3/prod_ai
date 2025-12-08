@@ -39,20 +39,19 @@ export function QuickAdd({ onAdd }) {
 
         setDueDate(dateStr);
 
-        // Format time if present (HH:MM)
-        // Check if the parsed date has specific time (chrono usually sets 12:00 if unknown, but let's check)
-        // Actually chrono sets current time or noon if not specified. 
-        // We can check if the result "implied" the time or "known" it.
-        // For now, let's just set the time if it's not 12:00:00.000 (default) OR if the text implies time.
-        // A simpler way: just set the time from the date object.
-        const timeStr = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-        setDueTime(timeStr);
+        // Smart Time Defaulting
+        // If the text explicitly mentions time (e.g. "at 5pm", "10:00"), use the parsed time.
+        // Otherwise, default to End of Day (17:00) because "no one works in midnight".
+        const hasTime = /:|am|pm|morning|afternoon|evening|night|noon|midnight/i.test(text);
+
+        if (hasTime) {
+            const timeStr = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+            setDueTime(timeStr);
+        } else {
+            setDueTime('17:00'); // Default to 5 PM
+        }
 
         // Remove the parsed text from the title
-        // We need to be careful. If "tommo" is at the end, remove it.
-        // If it's in the middle, remove it and clean up spaces.
-
-        // Simple approach: Replace the text with empty string
         let newTitle = title.replace(text, '').replace(/\s{2,}/g, ' ').trim();
         setTitle(newTitle);
         setSuggestedDate(null);
@@ -63,18 +62,17 @@ export function QuickAdd({ onAdd }) {
 
     const dismissSuggestion = () => {
         setSuggestedDate(null);
-        // We might want to ignore this specific text for a while? 
-        // For simplicity, just clearing it. It will reappear if they type more.
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!title.trim()) return;
 
-        // Auto-apply suggestion if present on submit
         let finalDueDate = dueDate;
+        let finalDueTime = dueTime;
         let finalTitle = title;
 
+        // Handle auto-application of suggestion on submit (if user didn't press Tab)
         if (suggestedDate) {
             const { date, text } = suggestedDate;
             const dateStr = date.getFullYear() + '-' +
@@ -82,30 +80,21 @@ export function QuickAdd({ onAdd }) {
                 String(date.getDate()).padStart(2, '0');
             finalDueDate = dateStr;
 
-            // Also handle time... but QuickAdd onAdd prop might expect just date or ISO string?
-            // The onAdd in Dashboard/Tasks usually takes a task object.
-            // Let's see what onAdd does. It usually dispatches addTask.
-            // We should combine date and time into a single ISO string if time is set.
+            // Smart Time Defaulting for auto-submit
+            const hasTime = /:|am|pm|morning|afternoon|evening|night|noon|midnight/i.test(text);
+            if (hasTime) {
+                finalDueTime = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
+            } else if (!finalDueTime) {
+                finalDueTime = '17:00'; // Default to 5 PM if no time specified
+            }
 
             finalTitle = title.replace(text, '').replace(/\s{2,}/g, ' ').trim();
         }
 
         // Construct final due date string
         let finalDueDateTime = finalDueDate;
-        if (finalDueDate && dueTime) {
-            finalDueDateTime = `${finalDueDate}T${dueTime}`;
-        } else if (finalDueDate && !dueTime && suggestedDate) {
-            // If we auto-applied, we might have a time in suggestedDate
-            const { date } = suggestedDate;
-            const timeStr = String(date.getHours()).padStart(2, '0') + ':' + String(date.getMinutes()).padStart(2, '0');
-            // Only use time if it seems intentional? 
-            // Chrono defaults to noon. Let's assume if user typed "at 5pm" it's there.
-            // If they just typed "tommo", time might be current time or noon.
-            // For now, let's just use the date part for "tommo".
-            // If the text contained time-like chars (: or am/pm), use time.
-            if (/:|am|pm|morning|evening|night/i.test(suggestedDate.text)) {
-                finalDueDateTime = `${finalDueDate}T${timeStr}`;
-            }
+        if (finalDueDate && finalDueTime) {
+            finalDueDateTime = `${finalDueDate}T${finalDueTime}`;
         }
 
         onAdd({
@@ -116,7 +105,7 @@ export function QuickAdd({ onAdd }) {
             project: project.trim() || null
         });
 
-        // Reset and keep focus
+        // Reset
         setTitle('');
         setPriority('none');
         setDueDate('');
@@ -133,12 +122,14 @@ export function QuickAdd({ onAdd }) {
         const date = new Date();
         date.setDate(date.getDate() + days);
         setDueDate(date.toISOString().split('T')[0]);
+        setDueTime('17:00'); // Default to 5 PM
     };
 
     const setNextWeek = () => {
         const date = new Date();
         date.setDate(date.getDate() + (8 - date.getDay())); // Next Monday
         setDueDate(date.toISOString().split('T')[0]);
+        setDueTime('17:00'); // Default to 5 PM
     };
 
     const priorityConfig = [

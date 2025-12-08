@@ -268,35 +268,80 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                         )}
                                     </div>
 
-                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                                        {[
-                                            { label: '15m', val: 15 * 60 * 1000 },
-                                            { label: '1h', val: 60 * 60 * 1000 },
-                                            { label: '3h', val: 3 * 60 * 60 * 1000 },
-                                            { label: '1d', val: 24 * 60 * 60 * 1000 },
-                                            { label: '1w', val: 7 * 24 * 60 * 60 * 1000 }
-                                        ].map(opt => (
-                                            <button
-                                                key={opt.label}
-                                                type="button"
-                                                onClick={() => setFollowUp({ ...followUp, dueAt: Date.now() + opt.val, status: 'pending' })}
-                                                style={{
-                                                    background: 'rgba(255,255,255,0.1)',
-                                                    border: 'none',
-                                                    borderRadius: '4px',
-                                                    padding: '4px 8px',
-                                                    fontSize: '11px',
-                                                    color: 'var(--text-secondary)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                onMouseEnter={e => e.target.style.background = 'rgba(255,255,255,0.2)'}
-                                                onMouseLeave={e => e.target.style.background = 'rgba(255,255,255,0.1)'}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
+                                    <select
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (!val) return;
+
+                                            let dueAt = Date.now();
+                                            const now = Date.now();
+                                            const d = new Date();
+
+                                            if (!isNaN(val)) {
+                                                dueAt = now + parseInt(val);
+                                            } else {
+                                                switch (val) {
+                                                    case 'tomorrow_morning':
+                                                        d.setDate(d.getDate() + 1);
+                                                        d.setHours(9, 0, 0, 0);
+                                                        break;
+                                                    case 'tomorrow_eod':
+                                                        d.setDate(d.getDate() + 1);
+                                                        d.setHours(17, 0, 0, 0);
+                                                        break;
+                                                    case '2d':
+                                                        d.setDate(d.getDate() + 2);
+                                                        d.setHours(9, 0, 0, 0);
+                                                        break;
+                                                    case '3d':
+                                                        d.setDate(d.getDate() + 3);
+                                                        d.setHours(9, 0, 0, 0);
+                                                        break;
+                                                    case 'next_monday_morning':
+                                                        d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7);
+                                                        d.setHours(9, 0, 0, 0);
+                                                        break;
+                                                    case 'next_monday_afternoon':
+                                                        d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7);
+                                                        d.setHours(14, 0, 0, 0);
+                                                        break;
+                                                }
+                                                dueAt = d.getTime();
+                                                if (dueAt <= now) dueAt += 24 * 60 * 60 * 1000;
+                                            }
+
+                                            setFollowUp({ ...followUp, dueAt, status: 'pending' });
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            marginBottom: '8px',
+                                            background: 'rgba(255,255,255,0.1)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '4px',
+                                            padding: '6px',
+                                            fontSize: '11px',
+                                            color: 'var(--text-secondary)',
+                                            cursor: 'pointer'
+                                        }}
+                                        value=""
+                                    >
+                                        <option value="" disabled>Select quick option...</option>
+                                        <optgroup label="Quick">
+                                            <option value={15 * 60 * 1000}>15m</option>
+                                            <option value={60 * 60 * 1000}>1h</option>
+                                            <option value={3 * 60 * 60 * 1000}>3h</option>
+                                        </optgroup>
+                                        <optgroup label="Days">
+                                            <option value="tomorrow_morning">Tomorrow Morning (9 AM)</option>
+                                            <option value="tomorrow_eod">Tomorrow EOD (5 PM)</option>
+                                            <option value="2d">2 Days (9 AM)</option>
+                                            <option value="3d">3 Days (9 AM)</option>
+                                        </optgroup>
+                                        <optgroup label="Next Week">
+                                            <option value="next_monday_morning">Next Monday Morning</option>
+                                            <option value="next_monday_afternoon">Next Monday Afternoon</option>
+                                        </optgroup>
+                                    </select>
 
                                     <input
                                         type="datetime-local"

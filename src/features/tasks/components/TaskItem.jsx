@@ -212,9 +212,53 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
                                 if (val === 'clear') {
                                     dueAt = null;
+                                } else if (!isNaN(val)) {
+                                    // Handle minutes (15, 60, etc.)
+                                    dueAt = now + (parseInt(val) * 60 * 1000);
                                 } else {
-                                    const minutes = parseInt(val);
-                                    dueAt = now + (minutes * 60 * 1000);
+                                    // Handle smart strings
+                                    const d = new Date();
+
+                                    switch (val) {
+                                        case 'tomorrow_morning':
+                                            d.setDate(d.getDate() + 1);
+                                            d.setHours(9, 0, 0, 0);
+                                            break;
+                                        case 'tomorrow_eod':
+                                            d.setDate(d.getDate() + 1);
+                                            d.setHours(17, 0, 0, 0);
+                                            break;
+                                        case '2d':
+                                            d.setDate(d.getDate() + 2);
+                                            d.setHours(9, 0, 0, 0);
+                                            break;
+                                        case '3d':
+                                            d.setDate(d.getDate() + 3);
+                                            d.setHours(9, 0, 0, 0);
+                                            break;
+                                        case 'next_monday_morning':
+                                            d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7); // Next Monday
+                                            d.setHours(9, 0, 0, 0);
+                                            break;
+                                        case 'next_monday_afternoon':
+                                            d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7);
+                                            d.setHours(14, 0, 0, 0);
+                                            break;
+                                        case 'next_tuesday_morning':
+                                            d.setDate(d.getDate() + (9 - d.getDay()) % 7 || 7); // Next Tuesday
+                                            d.setHours(9, 0, 0, 0);
+                                            break;
+                                        case 'next_tuesday_afternoon':
+                                            d.setDate(d.getDate() + (9 - d.getDay()) % 7 || 7);
+                                            d.setHours(14, 0, 0, 0);
+                                            break;
+                                    }
+                                    dueAt = d.getTime();
+
+                                    // If calculated time is in the past (e.g. it's 10 AM and we selected 9 AM today), add a day
+                                    if (dueAt <= now) {
+                                        dueAt += 24 * 60 * 60 * 1000;
+                                    }
                                 }
 
                                 if (task.assignee) {
@@ -257,16 +301,23 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                             <option value="" disabled hidden>
                                 {(task.followUp?.dueAt || task.remindAt) ? '🔔 Active' : (task.assignee ? '🔔 Follow Up' : '🔔 Revisit')}
                             </option>
-                            <option value="1">1m</option>
-                            <option value="15">15m</option>
-                            <option value="30">30m</option>
-                            <option value="60">1h</option>
-                            <option value="120">2h</option>
-                            <option value="180">3h</option>
-                            <option value="360">6h</option>
-                            <option value="1440">Tomorrow (24h)</option>
-                            <option value="2880">2 Days</option>
-                            <option value="10080">1 Week</option>
+                            <optgroup label="Quick">
+                                <option value="15">15m</option>
+                                <option value="60">1h</option>
+                                <option value="180">3h</option>
+                            </optgroup>
+                            <optgroup label="Days">
+                                <option value="tomorrow_morning">Tomorrow Morning (9 AM)</option>
+                                <option value="tomorrow_eod">Tomorrow EOD (5 PM)</option>
+                                <option value="2d">2 Days (9 AM)</option>
+                                <option value="3d">3 Days (9 AM)</option>
+                            </optgroup>
+                            <optgroup label="Next Week">
+                                <option value="next_monday_morning">Next Monday Morning</option>
+                                <option value="next_monday_afternoon">Next Monday Afternoon</option>
+                                <option value="next_tuesday_morning">Next Tuesday Morning</option>
+                                <option value="next_tuesday_afternoon">Next Tuesday Afternoon</option>
+                            </optgroup>
                             {(task.followUp?.dueAt || task.remindAt) && <option value="clear">❌ Clear</option>}
                         </select>
 
