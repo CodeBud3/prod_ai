@@ -4,6 +4,7 @@ import { AiEngine } from '../../../services/AiEngine';
 import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio } from '../../tasks';
 import { GoblinMode } from '../../tasks/components/GoblinMode';
 import { BoredDice } from '../../tasks/components/BoredDice';
+import { UserSettingsModal } from '../../user/components/UserSettingsModal';
 import { NotificationPanel } from '../../notifications';
 import { CircularProgress, FunnyTooltip } from '../../../components/ui';
 import { ExecutiveSummary } from './ExecutiveSummary';
@@ -395,6 +396,7 @@ export function Dashboard() {
     const [activeBucket, setActiveBucket] = useState(null); // Bucket filter: 'work', 'personal', 'errands'
     const [showGoblinMode, setShowGoblinMode] = useState(false); // Goblin Mode (panic button)
     const [showBoredDice, setShowBoredDice] = useState(false); // I'm Bored Dice
+    const [showSettings, setShowSettings] = useState(false); // User Settings Modal
 
     // Check for reminders
     useEffect(() => {
@@ -688,7 +690,13 @@ export function Dashboard() {
             <div style={{ flex: 1, minWidth: 0 }}>
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                     <div>
-                        <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>Good Morning, {user.name}</h1>
+                        <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>
+                            Good Morning, <span
+                                onClick={() => setShowSettings(true)}
+                                style={{ cursor: 'pointer', borderBottom: '2px dashed rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
+                                title="Click to edit your profile"
+                            >{user.name}</span>
+                        </h1>
                         <p style={{ color: 'var(--text-secondary)' }}>{planSummary || 'Here is your executive summary.'}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -904,6 +912,11 @@ export function Dashboard() {
             {/* I'm Bored Dice */}
             {showBoredDice && (
                 <BoredDice onClose={() => setShowBoredDice(false)} />
+            )}
+
+            {/* User Settings */}
+            {showSettings && (
+                <UserSettingsModal onClose={() => setShowSettings(false)} />
             )}
         </div>
     );

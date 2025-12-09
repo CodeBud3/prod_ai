@@ -31,6 +31,12 @@ const userSlice = createSlice({
             state.name = action.payload.name
             state.role = action.payload.role
             state.onboarded = true
+        },
+        updateName: (state, action) => {
+            state.name = action.payload
+        },
+        updateRole: (state, action) => {
+            state.role = action.payload
         }
     }
 })
@@ -40,7 +46,9 @@ export const {
     updatePreferences,
     setTheme,
     toggleFocusMode,
-    completeOnboarding
+    completeOnboarding,
+    updateName,
+    updateRole
 } = userSlice.actions
 
 export default userSlice.reducer
