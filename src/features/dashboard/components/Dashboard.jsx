@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AiEngine } from '../../../services/AiEngine';
 import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio } from '../../tasks';
+import { GoblinMode } from '../../tasks/components/GoblinMode';
+import { BoredDice } from '../../tasks/components/BoredDice';
 import { NotificationPanel } from '../../notifications';
 import { CircularProgress, FunnyTooltip } from '../../../components/ui';
 import { ExecutiveSummary } from './ExecutiveSummary';
@@ -391,6 +393,8 @@ export function Dashboard() {
     const [myTasksSort, setMyTasksSort] = useState('smart'); // Lifted state for My Tasks sort
     const [activeFilter, setActiveFilter] = useState(null); // Sidebar filter: 'yesterday', 'today', 'actions', 'delegations', 'decisions', 'tomorrow', 'horizon'
     const [activeBucket, setActiveBucket] = useState(null); // Bucket filter: 'work', 'personal', 'errands'
+    const [showGoblinMode, setShowGoblinMode] = useState(false); // Goblin Mode (panic button)
+    const [showBoredDice, setShowBoredDice] = useState(false); // I'm Bored Dice
 
     // Check for reminders
     useEffect(() => {
@@ -714,6 +718,24 @@ export function Dashboard() {
                             Enter Focus Mode
                         </button>
                         <button
+                            onClick={() => setShowGoblinMode(true)}
+                            className="btn-secondary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                            disabled={!tasks.some(t => t.status !== 'done')}
+                            title="Panic Button - Just one task"
+                        >
+                            👹 Goblin Mode
+                        </button>
+                        <button
+                            onClick={() => setShowBoredDice(true)}
+                            className="btn-secondary"
+                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                            disabled={!tasks.some(t => t.status !== 'done')}
+                            title="Can't decide? Roll the dice!"
+                        >
+                            🎲 I'm Bored
+                        </button>
+                        <button
                             onClick={() => setShowPrioritization(true)}
                             className="btn-secondary"
                         >
@@ -873,6 +895,16 @@ export function Dashboard() {
                 <span>Storage: {window.indexedDB ? 'IndexedDB (Active)' : 'LocalStorage (Fallback)'}</span>
                 <span>v1.2</span>
             </div>
+
+            {/* Goblin Mode */}
+            {showGoblinMode && (
+                <GoblinMode onExit={() => setShowGoblinMode(false)} />
+            )}
+
+            {/* I'm Bored Dice */}
+            {showBoredDice && (
+                <BoredDice onClose={() => setShowBoredDice(false)} />
+            )}
         </div>
     );
 }
