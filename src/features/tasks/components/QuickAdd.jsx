@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { selectAllTasks } from '../tasksSelectors';
+import { TASK_CATEGORIES } from '../tasksSlice';
 import { parseTaskInput } from '../../../utils/nlp';
 
 export function QuickAdd({ onAdd }) {
@@ -10,6 +11,7 @@ export function QuickAdd({ onAdd }) {
     const [dueTime, setDueTime] = useState('');
     const [assignee, setAssignee] = useState('');
     const [project, setProject] = useState('');
+    const [category, setCategory] = useState('general');
     const [parsedTask, setParsedTask] = useState(null);
     const [isFocused, setIsFocused] = useState(false);
     const titleInputRef = useRef(null);
@@ -28,9 +30,10 @@ export function QuickAdd({ onAdd }) {
 
     const applySuggestion = () => {
         if (!parsedTask) return;
-        const { assignee: newAssignee, priority: newPriority, dueDate: newDueDate, dueTime: newDueTime, title: cleanTitle, project: newProject } = parsedTask;
+        const { assignee: newAssignee, priority: newPriority, dueDate: newDueDate, dueTime: newDueTime, title: cleanTitle, project: newProject, category: newCategory } = parsedTask;
         if (newAssignee) setAssignee(newAssignee);
         if (newProject) setProject(newProject);
+        if (newCategory) setCategory(newCategory);
         if (newPriority !== 'none') setPriority(newPriority);
         if (newDueDate) setDueDate(newDueDate);
         if (newDueTime) setDueTime(newDueTime);
@@ -49,6 +52,7 @@ export function QuickAdd({ onAdd }) {
         let finalPriority = priority;
         let finalAssignee = assignee;
         let finalProject = project;
+        let finalCategory = category;
 
         if (parsedTask) {
             const { assignee: pAssignee, priority: pPriority, dueDate: pDueDate, dueTime: pDueTime, title: pTitle, project: pProject } = parsedTask;
@@ -91,7 +95,8 @@ export function QuickAdd({ onAdd }) {
             priority: finalPriority,
             dueDate: finalDueDateTime || null,
             project: finalProject.trim() || null,
-            assignee: finalAssignee || null
+            assignee: finalAssignee || null,
+            category: finalCategory
         };
 
         if (followUp) {
@@ -107,6 +112,7 @@ export function QuickAdd({ onAdd }) {
         setDueTime('');
         setAssignee('');
         setProject('');
+        setCategory('general');
         setParsedTask(null);
         titleInputRef.current?.focus();
     };
@@ -114,7 +120,20 @@ export function QuickAdd({ onAdd }) {
     const setDateShortcut = (days) => {
         const date = new Date();
         date.setDate(date.getDate() + days);
-        setDueDate(date.toISOString().split('T')[0]);
+        // Use local date string (YYYY-MM-DD) to avoid UTC off-by-one errors
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        setDueDate(`${year}-${month}-${day}`);
+    };
+
+    const getFutureDate = (days) => {
+        const date = new Date();
+        date.setDate(date.getDate() + days);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     };
 
     const priorityConfig = [
@@ -160,7 +179,7 @@ export function QuickAdd({ onAdd }) {
     };
 
     // Summary chips for current selection
-    const hasSelections = priority !== 'none' || dueDate || assignee || project;
+    const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general';
 
     return (
         <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: '16px', marginBottom: '24px' }}>
@@ -215,6 +234,7 @@ export function QuickAdd({ onAdd }) {
                                 <span style={{ opacity: 0.8 }}>✨ Detected:</span>
                                 {parsedTask.dueDate && <span>📅 {parsedTask.dueDate} {parsedTask.dueTime || ''}</span>}
                                 {parsedTask.assignee && <span>👤 {parsedTask.assignee}</span>}
+                                {parsedTask.category && <span>{TASK_CATEGORIES[parsedTask.category]?.icon || '🏷️'} {TASK_CATEGORIES[parsedTask.category]?.label || parsedTask.category}</span>}
                                 {parsedTask.project && <span>📁 {parsedTask.project}</span>}
                                 {parsedTask.priority !== 'none' && <span>🔥 {parsedTask.priority}</span>}
                             </div>
@@ -277,9 +297,9 @@ export function QuickAdd({ onAdd }) {
                     {/* Date */}
                     <div style={sectionStyle}>
                         <span style={labelStyle}>Due</span>
-                        <button type="button" onClick={() => setDateShortcut(0)} style={chipStyle(dueDate === new Date().toISOString().split('T')[0])}>Today</button>
-                        <button type="button" onClick={() => setDateShortcut(1)} style={chipStyle(false)}>Tomorrow</button>
-                        <button type="button" onClick={() => setDateShortcut(7)} style={chipStyle(false)}>Next Week</button>
+                        <button type="button" onClick={() => setDateShortcut(0)} style={chipStyle(dueDate === getFutureDate(0))}>Today</button>
+                        <button type="button" onClick={() => setDateShortcut(1)} style={chipStyle(dueDate === getFutureDate(1))}>Tomorrow</button>
+                        <button type="button" onClick={() => setDateShortcut(7)} style={chipStyle(dueDate === getFutureDate(7))}>Next Week</button>
                         <input
                             type="date"
                             value={dueDate}
@@ -346,6 +366,21 @@ export function QuickAdd({ onAdd }) {
                                 width: '60px'
                             }}
                         />
+                    </div>
+
+                    {/* Category */}
+                    <div style={sectionStyle}>
+                        <span style={labelStyle}>Bucket</span>
+                        {Object.values(TASK_CATEGORIES).map(cat => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                onClick={() => setCategory(category === cat.id ? 'general' : cat.id)}
+                                style={chipStyle(category === cat.id, cat.color)}
+                            >
+                                {cat.icon} {cat.label}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Assignee */}
@@ -426,6 +461,14 @@ export function QuickAdd({ onAdd }) {
                             style={{ ...chipStyle(true, '#8b5cf6'), cursor: 'pointer' }}
                         >
                             @{assignee} ×
+                        </span>
+                    )}
+                    {category !== 'general' && (
+                        <span
+                            onClick={() => setCategory('general')}
+                            style={{ ...chipStyle(true, TASK_CATEGORIES[category]?.color), cursor: 'pointer' }}
+                        >
+                            {TASK_CATEGORIES[category]?.icon} {TASK_CATEGORIES[category]?.label} ×
                         </span>
                     )}
                 </div>

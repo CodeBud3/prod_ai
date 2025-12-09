@@ -8,7 +8,7 @@ import { ExecutiveSummary } from './ExecutiveSummary';
 import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
 import { toggleFocusMode } from '../../user/userSlice';
 import { selectAllTasks, selectMyTasks, selectDelegatedTasks } from '../../tasks/tasksSelectors';
-import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan } from '../../tasks/tasksSlice';
+import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan, TASK_CATEGORIES } from '../../tasks/tasksSlice';
 import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
 import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
@@ -390,6 +390,7 @@ export function Dashboard() {
     const [showPrioritization, setShowPrioritization] = useState(false);
     const [myTasksSort, setMyTasksSort] = useState('smart'); // Lifted state for My Tasks sort
     const [activeFilter, setActiveFilter] = useState(null); // Sidebar filter: 'yesterday', 'today', 'actions', 'delegations', 'decisions', 'tomorrow', 'horizon'
+    const [activeBucket, setActiveBucket] = useState(null); // Bucket filter: 'work', 'personal', 'errands'
 
     // Check for reminders
     useEffect(() => {
@@ -509,7 +510,14 @@ export function Dashboard() {
 
     // Apply sidebar filter
     const getFilteredTasks = (taskList, isDelegated = false) => {
-        if (!activeFilter) return taskList;
+        let filtered = taskList;
+
+        // Apply Bucket Filter
+        if (activeBucket) {
+            filtered = filtered.filter(t => t.category === activeBucket);
+        }
+
+        if (!activeFilter) return filtered;
 
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -617,6 +625,54 @@ export function Dashboard() {
 
             {/* Left Sidebar */}
             <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>
+                {/* Bucket Filter */}
+                <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+                    <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px', letterSpacing: '1px' }}>
+                        Life Buckets
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button
+                            onClick={() => setActiveBucket(null)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '10px',
+                                padding: '8px 12px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: !activeBucket ? 'rgba(255,255,255,0.1)' : 'transparent',
+                                color: !activeBucket ? 'white' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                textAlign: 'left'
+                            }}
+                        >
+                            <span>🌍</span> All Tasks
+                        </button>
+                        {Object.values(TASK_CATEGORIES).map(cat => (
+                            <button
+                                key={cat.id}
+                                onClick={() => setActiveBucket(activeBucket === cat.id ? null : cat.id)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    padding: '8px 12px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: activeBucket === cat.id ? cat.color : 'transparent',
+                                    color: activeBucket === cat.id ? 'white' : 'var(--text-secondary)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s',
+                                    textAlign: 'left'
+                                }}
+                            >
+                                <span>{cat.icon}</span> {cat.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 <ExecutiveSummary
                     vertical={true}
                     activeFilter={activeFilter}

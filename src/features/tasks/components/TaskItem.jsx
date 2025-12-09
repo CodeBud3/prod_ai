@@ -3,6 +3,7 @@ import { CircularProgress } from '../../../components/ui';
 import confetti from 'canvas-confetti';
 import { MotivationalPopup } from '../../../components/ui';
 import { FunnyTooltip } from '../../../components/ui';
+import { TASK_CATEGORIES } from '../../tasks/tasksSlice';
 
 export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, handleDismissReminder, onDeleteTask, getPriorityColor, formatTimestamp, handleSetFocus, onUpdateTask }) {
     const focusColors = {
@@ -27,12 +28,12 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
             const y = (rect.top + rect.height / 2) / window.innerHeight;
 
             confetti({
-                particleCount: 30,
-                spread: 35,
+                particleCount: 40,
+                spread: 40,
                 startVelocity: 48,
-                gravity: 2.0,
-                decay: 0.92,
-                scalar: 0.5,
+                gravity: 1.5,
+                decay: 0.9,
+                scalar: 0.6,
                 origin: { x, y },
                 colors: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
                 disableForReducedMotion: true,
@@ -130,6 +131,24 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
                 {/* Metadata Row - Tags, Completion */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    {/* Category */}
+                    {task.category && TASK_CATEGORIES[task.category] && (
+                        <div style={{
+                            fontSize: '10px',
+                            background: `${TASK_CATEGORIES[task.category].color}20`,
+                            color: TASK_CATEGORIES[task.category].color,
+                            padding: '2px 6px',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 500
+                        }}>
+                            <span>{TASK_CATEGORIES[task.category].icon}</span>
+                            {TASK_CATEGORIES[task.category].label}
+                        </div>
+                    )}
+
                     {/* Tags */}
                     {task.tags && task.tags.length > 0 && task.tags.map(tag => (
                         <span key={tag} style={{

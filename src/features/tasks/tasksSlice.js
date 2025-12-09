@@ -20,6 +20,13 @@ export const generateTaskPlan = createAsyncThunk(
     }
 )
 
+// Predefined categories
+export const TASK_CATEGORIES = {
+    work: { id: 'work', label: 'Work', color: '#3b82f6', icon: '💼' },
+    personal: { id: 'personal', label: 'Personal', color: '#10b981', icon: '🏠' },
+    errands: { id: 'errands', label: 'Errands', color: '#f59e0b', icon: '🛒' }
+};
+
 const tasksSlice = createSlice({
     name: 'tasks',
     initialState,
@@ -29,6 +36,7 @@ const tasksSlice = createSlice({
                 ...action.payload,
                 priority: action.payload.priority || 'none',
                 status: action.payload.status || 'todo',
+                category: action.payload.category || 'general',
                 createdAt: action.payload.createdAt || Date.now()
             };
             state.items.push(task);
@@ -39,6 +47,7 @@ const tasksSlice = createSlice({
                 ...t,
                 priority: t.priority || 'none',
                 status: t.status || 'todo',
+                category: t.category || 'general',
                 createdAt: t.createdAt || Date.now()
             }));
             state.items = [...state.items, ...tasks];
