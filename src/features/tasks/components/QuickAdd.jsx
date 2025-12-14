@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { selectAllTasks } from '../tasksSelectors';
 import { TASK_CATEGORIES } from '../tasksSlice';
 import { parseTaskInput } from '../../../utils/nlp';
+import { useOnClickOutside } from '../../../hooks/useOnClickOutside';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
@@ -14,9 +15,16 @@ export function QuickAdd({ onAdd }) {
     const [project, setProject] = useState('');
     const [category, setCategory] = useState('general');
     const [parsedTask, setParsedTask] = useState(null);
-    const [isFocused, setIsFocused] = useState(false);
-    const [showDescription, setShowDescription] = useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+
+    // Refs
     const titleInputRef = useRef(null);
+    const formRef = useRef(null);
+
+    // Close panel when clicking outside
+    useOnClickOutside(formRef, () => {
+        if (isOpen) setIsOpen(false);
+    });
 
     // Get existing projects and assignees from tasks for quick suggestions
     const tasks = useSelector(selectAllTasks);
@@ -118,8 +126,8 @@ export function QuickAdd({ onAdd }) {
         setProject('');
         setCategory('general');
         setParsedTask(null);
-        setShowDescription(false);
-        titleInputRef.current?.focus();
+        setIsOpen(false);
+        // titleInputRef.current?.blur(); // Optional: remove focus
     };
 
     const setDateShortcut = (days) => {
@@ -183,21 +191,19 @@ export function QuickAdd({ onAdd }) {
         marginRight: '4px'
     };
 
-    // Summary chips for current selection - include description to keep panel open
-    const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general' || showDescription || description;
+    const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general' || description;
 
     return (
-        <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: '16px', marginBottom: '24px' }}>
+        <form ref={formRef} onSubmit={handleSubmit} className="glass-panel" style={{ padding: '16px', marginBottom: '24px' }}>
             {/* Main Input Row */}
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: hasSelections || isFocused ? '12px' : 0 }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: isOpen ? '12px' : 0 }}>
                 <div style={{ flex: 1, position: 'relative' }}>
                     <input
                         ref={titleInputRef}
                         type="text"
                         value={title}
                         onChange={handleTitleChange}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => setTimeout(() => setIsFocused(false), 200)}
+                        onFocus={() => setIsOpen(true)}
                         onKeyDown={(e) => {
                             if (e.key === 'Tab' && parsedTask) {
                                 e.preventDefault();
@@ -274,8 +280,8 @@ export function QuickAdd({ onAdd }) {
                 </button>
             </div>
 
-            {/* Quick Options - Always visible when focused or has selections */}
-            {(isFocused || hasSelections) && (
+            {/* Quick Options - Visible when open */}
+            {isOpen && (
                 <div style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -448,8 +454,8 @@ export function QuickAdd({ onAdd }) {
                 </div>
             )}
 
-            {/* Current Selection Summary - Shown when not focused but has selections */}
-            {!isFocused && hasSelections && (
+            {/* Current Selection Summary - Shown when closed but has selections */}
+            {!isOpen && hasSelections && (
                 <div style={{
                     display: 'flex',
                     gap: '8px',
