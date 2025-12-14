@@ -1,9 +1,16 @@
 import React, { useEffect } from 'react';
 
+// Sound file paths for different notification types
+const SOUNDS = {
+    dueDate: '/critical_alarm.mp3',           // Critical: tasks nearing/at/past due date
+    followUp: '/porsche_seatbelt_chime.mp3',  // Intermediate: follow-up reminders
+    reminder: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3'  // Revisit tasks & 'remind me x time before'
+};
+
 export function NotificationToast({ notification, onDismiss, onSnooze, onComplete }) {
     useEffect(() => {
-        // Play alarm sound
-        const soundPath = '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3';
+        // Select sound based on notification type
+        const soundPath = SOUNDS[notification?.type] || SOUNDS.reminder;
         const audio = new Audio(soundPath);
         audio.loop = true;
 
@@ -13,7 +20,6 @@ export function NotificationToast({ notification, onDismiss, onSnooze, onComplet
                 console.log("Audio playing successfully:", soundPath);
             } catch (err) {
                 console.error("Audio playback failed:", err);
-                // Retry once on user interaction if needed (handled by browser policy usually)
             }
         };
 
@@ -30,7 +36,7 @@ export function NotificationToast({ notification, onDismiss, onSnooze, onComplet
             audio.currentTime = 0;
             audio.removeEventListener('canplaythrough', playAudio);
         };
-    }, []);
+    }, [notification?.type]);
 
     return (
         <div className="fade-in" style={{

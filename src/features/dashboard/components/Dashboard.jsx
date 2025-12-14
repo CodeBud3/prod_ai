@@ -403,10 +403,50 @@ export function Dashboard() {
         const interval = setInterval(() => {
             dispatch(checkReminders());
 
-            // Check for follow-ups
+            // Check for tasks due today/overdue
             const now = Date.now();
+            const todayStart = new Date();
+            todayStart.setHours(0, 0, 0, 0);
+            const todayEnd = new Date();
+            todayEnd.setHours(23, 59, 59, 999);
+
+            // Check for tasks nearing/at/past due date (critical alarm)
+            const dueDateTasks = tasks.filter(task => {
+                if (task.status === 'done' || !task.dueDate) return false;
+
+                // Skip if task has a future remindAt (snoozed)
+                if (task.remindAt && task.remindAt > now) return false;
+
+                // Skip if task was dismissed within the last 5 seconds (prevent immediate re-trigger)
+                if (task.lastDismissedAt && (now - task.lastDismissedAt) < 5000) return false;
+
+                const dueTime = new Date(task.dueDate).getTime();
+                // Task is due within 1 hour or already overdue
+                const isNearingDue = dueTime <= now + (60 * 60 * 1000) && dueTime >= now;
+                const isOverdue = dueTime < now;
+                return isNearingDue || isOverdue;
+            });
+
+            if (dueDateTasks.length > 0) {
+                dueDateTasks.forEach(task => {
+                    if (!notifications.some(n => n.taskId === task.id && n.type === 'dueDate')) {
+                        const dueTime = new Date(task.dueDate).getTime();
+                        const isOverdue = dueTime < now;
+                        dispatch(addNotification({
+                            taskId: task.id,
+                            type: 'dueDate',
+                            message: `${isOverdue ? '🚨 OVERDUE: ' : '⏰ DUE NOW: '}${task.title}`
+                        }));
+                    }
+                });
+            }
+
+            // Check for follow-ups (intermediate reminder)
             const followUpDueTasks = tasks.filter(task => {
-                const isDue = task.followUp?.dueAt &&
+                if (task.status === 'done') return false;
+                const isDue =
+                    task.followUp &&
+                    task.followUp.dueAt &&
                     task.followUp.dueAt <= now &&
                     task.followUp.status === 'pending';
 
@@ -416,23 +456,24 @@ export function Dashboard() {
 
             if (followUpDueTasks.length > 0) {
                 followUpDueTasks.forEach(task => {
-                    // Check if already notified
-                    if (!notifications.some(n => n.taskId === task.id)) {
+                    if (!notifications.some(n => n.taskId === task.id && n.type === 'followUp')) {
                         dispatch(addNotification({
                             taskId: task.id,
+                            type: 'followUp',
                             message: `${task.title} ${task.assignee ? `(${task.assignee})` : ''}`
                         }));
                     }
                 });
             }
 
-            // Check for active reminders (re-trigger notification if missing, e.g. after reload)
+            // Check for active reminders (revisit task reminders and 'remind me x time before')
             const activeReminders = tasks.filter(task => task.reminding);
             if (activeReminders.length > 0) {
                 activeReminders.forEach(task => {
-                    if (!notifications.some(n => n.taskId === task.id)) {
+                    if (!notifications.some(n => n.taskId === task.id && n.type === 'reminder')) {
                         dispatch(addNotification({
                             taskId: task.id,
+                            type: 'reminder',
                             message: `${task.title} (Reminder)`
                         }));
                     }
@@ -839,23 +880,46 @@ export function Dashboard() {
             <NotificationPanel
                 notifications={notifications}
                 onDismiss={(notificationId) => {
+                    // Find the notification to check its type
+                    const notification = notifications.find(n => n.id === notificationId);
+                    const task = notification ? tasks.find(t => t.id === notification.taskId) : null;
+
+                    // For dueDate notifications: dismiss = remind next day
+                    if (notification?.type === 'dueDate' && task) {
+                        const tomorrow = new Date();
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        tomorrow.setHours(9, 0, 0, 0); // 9 AM next day
+
+                        dispatch(updateTask({
+                            id: task.id,
+                            updates: {
+                                remindAt: tomorrow.getTime(),
+                                reminderStartedAt: Date.now(),
+                                lastDismissedAt: Date.now() // Track when dismissed
+                            }
+                        }));
+                    }
+
                     dispatch(removeNotification(notificationId));
                 }}
                 onSnooze={(taskId, notificationId) => {
                     const task = tasks.find(t => t.id === taskId);
                     if (task) {
+                        // Snooze for 1 hour regardless of notification type
+                        const oneHourFromNow = Date.now() + 60 * 60 * 1000;
+
                         dispatch(updateTask({
                             id: task.id,
                             updates: {
                                 reminding: false,
+                                remindAt: oneHourFromNow,
+                                reminderStartedAt: Date.now(),
                                 followUp: task.assignee ? {
                                     ...(task.followUp || {}),
-                                    dueAt: Date.now() + 60 * 60 * 1000, // 1 hour
+                                    dueAt: oneHourFromNow,
                                     startedAt: Date.now(),
                                     status: 'pending'
-                                } : task.followUp,
-                                remindAt: !task.assignee ? Date.now() + 60 * 60 * 1000 : task.remindAt,
-                                reminderStartedAt: !task.assignee ? Date.now() : task.reminderStartedAt
+                                } : task.followUp
                             }
                         }));
                     }

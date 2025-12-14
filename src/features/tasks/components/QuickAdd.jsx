@@ -6,6 +6,7 @@ import { parseTaskInput } from '../../../utils/nlp';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [priority, setPriority] = useState('none');
     const [dueDate, setDueDate] = useState('');
     const [dueTime, setDueTime] = useState('');
@@ -14,6 +15,7 @@ export function QuickAdd({ onAdd }) {
     const [category, setCategory] = useState('general');
     const [parsedTask, setParsedTask] = useState(null);
     const [isFocused, setIsFocused] = useState(false);
+    const [showDescription, setShowDescription] = useState(false);
     const titleInputRef = useRef(null);
 
     // Get existing projects and assignees from tasks for quick suggestions
@@ -92,6 +94,7 @@ export function QuickAdd({ onAdd }) {
 
         const taskData = {
             title: finalTitle,
+            description: description.trim() || null,
             priority: finalPriority,
             dueDate: finalDueDateTime || null,
             project: finalProject.trim() || null,
@@ -107,6 +110,7 @@ export function QuickAdd({ onAdd }) {
 
         // Reset all
         setTitle('');
+        setDescription('');
         setPriority('none');
         setDueDate('');
         setDueTime('');
@@ -114,6 +118,7 @@ export function QuickAdd({ onAdd }) {
         setProject('');
         setCategory('general');
         setParsedTask(null);
+        setShowDescription(false);
         titleInputRef.current?.focus();
     };
 
@@ -178,8 +183,8 @@ export function QuickAdd({ onAdd }) {
         marginRight: '4px'
     };
 
-    // Summary chips for current selection
-    const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general';
+    // Summary chips for current selection - include description to keep panel open
+    const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general' || showDescription || description;
 
     return (
         <form onSubmit={handleSubmit} className="glass-panel" style={{ padding: '16px', marginBottom: '24px' }}>
@@ -381,6 +386,29 @@ export function QuickAdd({ onAdd }) {
                                 {cat.icon} {cat.label}
                             </button>
                         ))}
+                    </div>
+
+                    {/* Description - Always Visible */}
+                    <div style={{ ...sectionStyle, width: '100%', flexDirection: 'column', alignItems: 'flex-start' }}>
+                        <span style={labelStyle}>📝 Description</span>
+                        <textarea
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Add more details about this task..."
+                            rows={2}
+                            style={{
+                                width: '100%',
+                                marginTop: '4px',
+                                background: 'rgba(255,255,255,0.05)',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                borderRadius: '8px',
+                                padding: '10px 12px',
+                                color: 'var(--text-primary)',
+                                fontSize: '13px',
+                                resize: 'vertical',
+                                minHeight: '50px'
+                            }}
+                        />
                     </div>
 
                     {/* Assignee */}
