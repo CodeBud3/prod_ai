@@ -8,6 +8,7 @@ import { UserSettingsModal } from '../../user/components/UserSettingsModal';
 import { NotificationPanel } from '../../notifications';
 import { CircularProgress, FunnyTooltip } from '../../../components/ui';
 import { ExecutiveSummary } from './ExecutiveSummary';
+import { PomodoroTimer } from './PomodoroTimer';
 import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
 import { toggleFocusMode } from '../../user/userSlice';
 import { selectAllTasks, selectMyTasks, selectDelegatedTasks } from '../../tasks/tasksSelectors';
@@ -16,6 +17,8 @@ import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
 import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
 import { selectAllNotifications } from '../../notifications/notificationsSelectors';
+import UseAnimations from 'react-useanimations';
+import notification from 'react-useanimations/lib/notification';
 
 // --- Sorting Helper Functions ---
 const calculateSmartScore = (task) => {
@@ -417,8 +420,8 @@ export function Dashboard() {
                 // Skip if task has a future remindAt (snoozed)
                 if (task.remindAt && task.remindAt > now) return false;
 
-                // Skip if task was dismissed within the last 5 seconds (prevent immediate re-trigger)
-                if (task.lastDismissedAt && (now - task.lastDismissedAt) < 5000) return false;
+                // Skip if task was dismissed within the last 1 hour (prevent immediate re-trigger)
+                if (task.lastDismissedAt && (now - task.lastDismissedAt) < 60 * 60 * 1000) return false;
 
                 const dueTime = new Date(task.dueDate).getTime();
                 // Task is due within 1 hour or already overdue
@@ -444,6 +447,10 @@ export function Dashboard() {
             // Check for follow-ups (intermediate reminder)
             const followUpDueTasks = tasks.filter(task => {
                 if (task.status === 'done') return false;
+
+                // Skip if task was dismissed within the last 1 hour
+                if (task.lastDismissedAt && (now - task.lastDismissedAt) < 60 * 60 * 1000) return false;
+
                 const isDue =
                     task.followUp &&
                     task.followUp.dueAt &&
@@ -467,7 +474,10 @@ export function Dashboard() {
             }
 
             // Check for active reminders (revisit task reminders and 'remind me x time before')
-            const activeReminders = tasks.filter(task => task.reminding);
+            const activeReminders = tasks.filter(task => {
+                if (task.lastDismissedAt && (now - task.lastDismissedAt) < 60 * 60 * 1000) return false;
+                return task.reminding;
+            });
             if (activeReminders.length > 0) {
                 activeReminders.forEach(task => {
                     if (!notifications.some(n => n.taskId === task.id && n.type === 'reminder')) {
@@ -720,6 +730,9 @@ export function Dashboard() {
                     </div>
                 </div>
 
+                {/* Pomodoro Timer - Focus Mode Only */}
+                {isFocusMode && <PomodoroTimer />}
+
                 <ExecutiveSummary
                     vertical={true}
                     activeFilter={activeFilter}
@@ -742,7 +755,14 @@ export function Dashboard() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ position: 'relative' }}>
-                            <span style={{ fontSize: '20px', cursor: 'pointer' }}>🔔</span>
+                            <div style={{ cursor: 'pointer' }}>
+                                <UseAnimations
+                                    animation={notification}
+                                    size={28}
+                                    strokeColor="white"
+                                    fillColor="white"
+                                />
+                            </div>
                             {notifications.length > 0 && (
                                 <span style={{
                                     position: 'absolute',
@@ -884,19 +904,23 @@ export function Dashboard() {
                     const notification = notifications.find(n => n.id === notificationId);
                     const task = notification ? tasks.find(t => t.id === notification.taskId) : null;
 
-                    // For dueDate notifications: dismiss = remind next day
-                    if (notification?.type === 'dueDate' && task) {
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        tomorrow.setHours(9, 0, 0, 0); // 9 AM next day
+                    if (task) {
+                        const updates = {
+                            lastDismissedAt: Date.now() // Always track dismissal to prevent immediate re-loop
+                        };
+
+                        // For dueDate notifications: dismiss = remind next day
+                        if (notification?.type === 'dueDate') {
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            tomorrow.setHours(9, 0, 0, 0); // 9 AM next day
+                            updates.remindAt = tomorrow.getTime();
+                            updates.reminderStartedAt = Date.now();
+                        }
 
                         dispatch(updateTask({
                             id: task.id,
-                            updates: {
-                                remindAt: tomorrow.getTime(),
-                                reminderStartedAt: Date.now(),
-                                lastDismissedAt: Date.now() // Track when dismissed
-                            }
+                            updates
                         }));
                     }
 

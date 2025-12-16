@@ -4,6 +4,8 @@ import { selectAllTasks } from '../tasksSelectors';
 import { TASK_CATEGORIES } from '../tasksSlice';
 import { parseTaskInput } from '../../../utils/nlp';
 import { useOnClickOutside } from '../../../hooks/useOnClickOutside';
+import UseAnimations from 'react-useanimations';
+import plusToX from 'react-useanimations/lib/plusToX';
 
 export function QuickAdd({ onAdd }) {
     const [title, setTitle] = useState('');
@@ -276,7 +278,10 @@ export function QuickAdd({ onAdd }) {
                     className="btn-primary"
                     style={{ padding: '12px 24px', fontSize: '14px', fontWeight: 600 }}
                 >
-                    Add
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <UseAnimations animation={plusToX} size={20} strokeColor="white" />
+                        <span>Add</span>
+                    </div>
                 </button>
             </div>
 

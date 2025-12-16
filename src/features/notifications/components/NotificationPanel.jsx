@@ -7,6 +7,9 @@ const SOUNDS = {
     reminder: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3'  // Revisit tasks & 'remind me x time before'
 };
 
+import UseAnimations from 'react-useanimations';
+import trash2 from 'react-useanimations/lib/trash2';
+
 export function NotificationPanel({ notifications, onDismiss, onSnooze, onComplete }) {
     const audioRef = useRef(null);
     const [soundPlaying, setSoundPlaying] = useState(false);
@@ -153,19 +156,22 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                                     <strong style={{ fontSize: '13px', color: config.color }}>{config.label}</strong>
                                 </div>
                                 <button
+                                    title="Dismiss"
                                     onClick={() => onDismiss(notification.id)}
                                     style={{
                                         background: 'none',
                                         border: 'none',
-                                        color: 'var(--text-secondary)',
                                         cursor: 'pointer',
                                         padding: '4px',
                                         opacity: 0.7,
                                         transition: 'opacity 0.2s'
                                     }}
-                                    title="Dismiss"
                                 >
-                                    ✕
+                                    <UseAnimations
+                                        animation={trash2}
+                                        size={20}
+                                        strokeColor="var(--text-secondary)"
+                                    />
                                 </button>
                             </div>
 
@@ -199,6 +205,6 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                     to { transform: translateX(0); opacity: 1; }
                 }
             `}</style>
-        </div>
+        </div >
     );
 }
