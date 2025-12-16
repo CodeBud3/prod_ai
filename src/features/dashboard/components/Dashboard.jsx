@@ -9,6 +9,7 @@ import { NotificationPanel } from '../../notifications';
 import { CircularProgress, FunnyTooltip } from '../../../components/ui';
 import { ExecutiveSummary } from './ExecutiveSummary';
 import { PomodoroTimer } from './PomodoroTimer';
+import { InsightsPage } from './InsightsPage';
 import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
 import { toggleFocusMode } from '../../user/userSlice';
 import { selectAllTasks, selectMyTasks, selectDelegatedTasks } from '../../tasks/tasksSelectors';
@@ -400,6 +401,7 @@ export function Dashboard() {
     const [showGoblinMode, setShowGoblinMode] = useState(false); // Goblin Mode (panic button)
     const [showBoredDice, setShowBoredDice] = useState(false); // I'm Bored Dice
     const [showSettings, setShowSettings] = useState(false); // User Settings Modal
+    const [showInsights, setShowInsights] = useState(false); // Insights Page
 
     // Check for reminders
     useEffect(() => {
@@ -639,6 +641,8 @@ export function Dashboard() {
     const sortedMyTasks = getSortedTasks(myTasks.filter(t => t.status !== 'done'), myTasksSort);
     const currentTask = sortedMyTasks[0]; // Use first task from sorted list
 
+    // Show Insights Page (Conditional Render handled below)
+
     if (isFocusMode && currentTask) {
         return (
             <div className="glass-panel fade-in" style={{ padding: '60px', textAlign: 'center', maxWidth: '800px', width: '100%' }}>
@@ -733,280 +737,334 @@ export function Dashboard() {
                 {/* Pomodoro Timer - Focus Mode Only */}
                 {isFocusMode && <PomodoroTimer />}
 
+                {/* View Toggle */}
+                <div style={{
+                    display: 'flex',
+                    background: 'rgba(255,255,255,0.05)',
+                    padding: '4px',
+                    borderRadius: '12px',
+                    marginBottom: '24px'
+                }}>
+                    <button
+                        onClick={() => setShowInsights(false)}
+                        style={{
+                            flex: 1,
+                            padding: '8px',
+                            border: 'none',
+                            background: !showInsights ? 'var(--surface-primary)' : 'transparent',
+                            color: !showInsights ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            transition: 'all 0.2s',
+                            boxShadow: !showInsights ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                        }}
+                    >
+                        ✅ Tasks
+                    </button>
+                    <button
+                        onClick={() => setShowInsights(true)}
+                        style={{
+                            flex: 1,
+                            padding: '8px',
+                            border: 'none',
+                            background: showInsights ? 'var(--surface-primary)' : 'transparent',
+                            color: showInsights ? 'var(--text-primary)' : 'var(--text-secondary)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: 500,
+                            transition: 'all 0.2s',
+                            boxShadow: showInsights ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
+                        }}
+                    >
+                        📊 Insights
+                    </button>
+                </div>
+
                 <ExecutiveSummary
                     vertical={true}
                     activeFilter={activeFilter}
                     onFilterChange={(filter) => setActiveFilter(activeFilter === filter ? null : filter)}
                 />
+                {/* Old button removed */}
             </div>
 
             {/* Main Content */}
             <div style={{ flex: 1, minWidth: 0 }}>
-                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <div>
-                        <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>
-                            Good Morning, <span
-                                onClick={() => setShowSettings(true)}
-                                style={{ cursor: 'pointer', borderBottom: '2px dashed rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
-                                title="Click to edit your profile"
-                            >{user.name}</span>
-                        </h1>
-                        <p style={{ color: 'var(--text-secondary)' }}>{planSummary || 'Here is your executive summary.'}</p>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ position: 'relative' }}>
-                            <div style={{ cursor: 'pointer' }}>
-                                <UseAnimations
-                                    animation={notification}
-                                    size={28}
-                                    strokeColor="white"
-                                    fillColor="white"
-                                />
+                {showInsights ? (
+                    <InsightsPage />
+                ) : (
+                    <>
+                        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                            <div>
+                                <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>
+                                    Good Morning, <span
+                                        onClick={() => setShowSettings(true)}
+                                        style={{ cursor: 'pointer', borderBottom: '2px dashed rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
+                                        title="Click to edit your profile"
+                                    >{user.name}</span>
+                                </h1>
+                                <p style={{ color: 'var(--text-secondary)' }}>{planSummary || 'Here is your executive summary.'}</p>
                             </div>
-                            {notifications.length > 0 && (
-                                <span style={{
-                                    position: 'absolute',
-                                    top: '-5px',
-                                    right: '-5px',
-                                    background: 'var(--accent-danger)',
-                                    color: 'white',
-                                    fontSize: '10px',
-                                    width: '16px',
-                                    height: '16px',
-                                    borderRadius: '50%',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 'bold'
-                                }}>
-                                    {notifications.length}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                <div style={{ position: 'relative' }}>
+                                    <div style={{ cursor: 'pointer' }}>
+                                        <UseAnimations
+                                            animation={notification}
+                                            size={28}
+                                            strokeColor="white"
+                                            fillColor="white"
+                                        />
+                                    </div>
+                                    {notifications.length > 0 && (
+                                        <span style={{
+                                            position: 'absolute',
+                                            top: '-5px',
+                                            right: '-5px',
+                                            background: 'var(--accent-danger)',
+                                            color: 'white',
+                                            fontSize: '10px',
+                                            width: '16px',
+                                            height: '16px',
+                                            borderRadius: '50%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {notifications.length}
+                                        </span>
+                                    )}
+                                </div>
+                                <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-primary" disabled={!tasks.some(t => t.status !== 'done')}>
+                                    Enter Focus Mode
+                                </button>
+                                <button
+                                    onClick={() => setShowGoblinMode(true)}
+                                    className="btn-secondary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    disabled={!tasks.some(t => t.status !== 'done')}
+                                    title="Panic Button - Just one task"
+                                >
+                                    👹 Goblin Mode
+                                </button>
+                                <button
+                                    onClick={() => setShowBoredDice(true)}
+                                    className="btn-secondary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                                    disabled={!tasks.some(t => t.status !== 'done')}
+                                    title="Can't decide? Roll the dice!"
+                                >
+                                    🎲 I'm Bored
+                                </button>
+                                <button
+                                    onClick={() => setShowPrioritization(true)}
+                                    className="btn-secondary"
+                                >
+                                    Help me prioritize
+                                </button>
+                            </div>
+                        </header>
+
+                        <QuickAdd onAdd={handleAddTask} />
+
+                        {/* Split View Grid */}
+                        {activeFilter && (
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px',
+                                marginBottom: '16px',
+                                padding: '12px 16px',
+                                background: 'rgba(139, 92, 246, 0.1)',
+                                borderRadius: '8px',
+                                border: '1px solid var(--accent-primary)'
+                            }}>
+                                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                                    Filtering: <strong style={{ color: 'var(--accent-primary)' }}>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</strong>
                                 </span>
-                            )}
+                                <button
+                                    onClick={() => setActiveFilter(null)}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: '16px',
+                                        padding: '0 4px'
+                                    }}
+                                    title="Clear filter"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        )}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            {/* My Tasks Column */}
+                            <TaskSection
+                                title={activeFilter ? `My Tasks (${filteredMyTasks.length} filtered)` : "My Tasks"}
+                                icon="👤"
+                                tasks={filteredMyTasks}
+                                count={filteredMyTasks.length}
+                                onToggleTask={handleToggleTask}
+                                setEditingTask={setEditingTask}
+                                handleSetReminder={handleSetReminder}
+                                handleDismissReminder={handleDismissReminder}
+                                onDeleteTask={handleDeleteTask}
+                                getPriorityColor={getPriorityColor}
+                                formatTimestamp={formatTimestamp}
+                                handleSetFocus={handleSetFocus}
+                                onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
+                                defaultSort="smart"
+                                defaultGroup="project"
+                                sortBy={myTasksSort}
+                                setSortBy={setMyTasksSort}
+                            />
+
+                            {/* Assigned to Others Column */}
+                            <TaskSection
+                                title={activeFilter ? `Assigned to Others (${filteredDelegatedTasks.length} filtered)` : "Assigned to Others"}
+                                icon="👥"
+                                tasks={filteredDelegatedTasks}
+                                count={filteredDelegatedTasks.length}
+                                onToggleTask={handleToggleTask}
+                                setEditingTask={setEditingTask}
+                                handleSetReminder={handleSetReminder}
+                                handleDismissReminder={handleDismissReminder}
+                                onDeleteTask={handleDeleteTask}
+                                getPriorityColor={getPriorityColor}
+                                formatTimestamp={formatTimestamp}
+                                handleSetFocus={handleSetFocus}
+                                onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
+                                defaultSort="smart"
+                                defaultGroup="assignee"
+                            />
+
                         </div>
-                        <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-primary" disabled={!tasks.some(t => t.status !== 'done')}>
-                            Enter Focus Mode
-                        </button>
-                        <button
-                            onClick={() => setShowGoblinMode(true)}
-                            className="btn-secondary"
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                            disabled={!tasks.some(t => t.status !== 'done')}
-                            title="Panic Button - Just one task"
-                        >
-                            👹 Goblin Mode
-                        </button>
-                        <button
-                            onClick={() => setShowBoredDice(true)}
-                            className="btn-secondary"
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                            disabled={!tasks.some(t => t.status !== 'done')}
-                            title="Can't decide? Roll the dice!"
-                        >
-                            🎲 I'm Bored
-                        </button>
-                        <button
-                            onClick={() => setShowPrioritization(true)}
-                            className="btn-secondary"
-                        >
-                            Help me prioritize
-                        </button>
-                    </div>
-                </header>
 
-                <QuickAdd onAdd={handleAddTask} />
-
-                {/* Split View Grid */}
-                {activeFilter && (
-                    <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        marginBottom: '16px',
-                        padding: '12px 16px',
-                        background: 'rgba(139, 92, 246, 0.1)',
-                        borderRadius: '8px',
-                        border: '1px solid var(--accent-primary)'
-                    }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
-                            Filtering: <strong style={{ color: 'var(--accent-primary)' }}>{activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)}</strong>
-                        </span>
-                        <button
-                            onClick={() => setActiveFilter(null)}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                fontSize: '16px',
-                                padding: '0 4px'
-                            }}
-                            title="Clear filter"
-                        >
-                            ✕
-                        </button>
-                    </div>
+                        {editingTask && (
+                            <EditTaskModal
+                                task={editingTask}
+                                onSave={handleSaveTask}
+                                onCancel={() => setEditingTask(null)}
+                            />
+                        )}
+                    </>
                 )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                    {/* My Tasks Column */}
-                    <TaskSection
-                        title={activeFilter ? `My Tasks (${filteredMyTasks.length} filtered)` : "My Tasks"}
-                        icon="👤"
-                        tasks={filteredMyTasks}
-                        count={filteredMyTasks.length}
-                        onToggleTask={handleToggleTask}
-                        setEditingTask={setEditingTask}
-                        handleSetReminder={handleSetReminder}
-                        handleDismissReminder={handleDismissReminder}
-                        onDeleteTask={handleDeleteTask}
-                        getPriorityColor={getPriorityColor}
-                        formatTimestamp={formatTimestamp}
-                        handleSetFocus={handleSetFocus}
-                        onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
-                        defaultSort="smart"
-                        defaultGroup="project"
-                        sortBy={myTasksSort}
-                        setSortBy={setMyTasksSort}
-                    />
 
-                    {/* Assigned to Others Column */}
-                    <TaskSection
-                        title={activeFilter ? `Assigned to Others (${filteredDelegatedTasks.length} filtered)` : "Assigned to Others"}
-                        icon="👥"
-                        tasks={filteredDelegatedTasks}
-                        count={filteredDelegatedTasks.length}
-                        onToggleTask={handleToggleTask}
-                        setEditingTask={setEditingTask}
-                        handleSetReminder={handleSetReminder}
-                        handleDismissReminder={handleDismissReminder}
-                        onDeleteTask={handleDeleteTask}
-                        getPriorityColor={getPriorityColor}
-                        formatTimestamp={formatTimestamp}
-                        handleSetFocus={handleSetFocus}
-                        onUpdateTask={(id, updates) => dispatch(updateTask({ id, updates }))}
-                        defaultSort="smart"
-                        defaultGroup="assignee"
-                    />
-                </div>
-            </div>
+                <NotificationPanel
+                    notifications={notifications}
+                    onDismiss={(notificationId) => {
+                        // Find the notification to check its type
+                        const notification = notifications.find(n => n.id === notificationId);
+                        const task = notification ? tasks.find(t => t.id === notification.taskId) : null;
 
-            {editingTask && (
-                <EditTaskModal
-                    task={editingTask}
-                    onSave={handleSaveTask}
-                    onCancel={() => setEditingTask(null)}
-                />
-            )}
+                        if (task) {
+                            const updates = {
+                                lastDismissedAt: Date.now() // Always track dismissal to prevent immediate re-loop
+                            };
 
-            <NotificationPanel
-                notifications={notifications}
-                onDismiss={(notificationId) => {
-                    // Find the notification to check its type
-                    const notification = notifications.find(n => n.id === notificationId);
-                    const task = notification ? tasks.find(t => t.id === notification.taskId) : null;
+                            // For dueDate notifications: dismiss = remind next day
+                            if (notification?.type === 'dueDate') {
+                                const tomorrow = new Date();
+                                tomorrow.setDate(tomorrow.getDate() + 1);
+                                tomorrow.setHours(9, 0, 0, 0); // 9 AM next day
+                                updates.remindAt = tomorrow.getTime();
+                                updates.reminderStartedAt = Date.now();
+                            }
 
-                    if (task) {
-                        const updates = {
-                            lastDismissedAt: Date.now() // Always track dismissal to prevent immediate re-loop
-                        };
-
-                        // For dueDate notifications: dismiss = remind next day
-                        if (notification?.type === 'dueDate') {
-                            const tomorrow = new Date();
-                            tomorrow.setDate(tomorrow.getDate() + 1);
-                            tomorrow.setHours(9, 0, 0, 0); // 9 AM next day
-                            updates.remindAt = tomorrow.getTime();
-                            updates.reminderStartedAt = Date.now();
+                            dispatch(updateTask({
+                                id: task.id,
+                                updates
+                            }));
                         }
 
-                        dispatch(updateTask({
-                            id: task.id,
-                            updates
-                        }));
-                    }
+                        dispatch(removeNotification(notificationId));
+                    }}
+                    onSnooze={(taskId, notificationId) => {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            // Snooze for 1 hour regardless of notification type
+                            const oneHourFromNow = Date.now() + 60 * 60 * 1000;
 
-                    dispatch(removeNotification(notificationId));
-                }}
-                onSnooze={(taskId, notificationId) => {
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task) {
-                        // Snooze for 1 hour regardless of notification type
-                        const oneHourFromNow = Date.now() + 60 * 60 * 1000;
-
-                        dispatch(updateTask({
-                            id: task.id,
-                            updates: {
-                                reminding: false,
-                                remindAt: oneHourFromNow,
-                                reminderStartedAt: Date.now(),
-                                followUp: task.assignee ? {
-                                    ...(task.followUp || {}),
-                                    dueAt: oneHourFromNow,
-                                    startedAt: Date.now(),
-                                    status: 'pending'
-                                } : task.followUp
-                            }
-                        }));
-                    }
-                    dispatch(removeNotification(notificationId));
-                }}
-                onComplete={(taskId, notificationId) => {
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task) {
-                        dispatch(updateTask({
-                            id: task.id,
-                            updates: {
-                                reminding: false,
-                                followUp: task.assignee ? {
-                                    ...(task.followUp || {}),
-                                    status: 'completed',
-                                    dueAt: null
-                                } : task.followUp,
-                                remindAt: !task.assignee ? null : task.remindAt,
-                                reminderStartedAt: !task.assignee ? null : task.reminderStartedAt
-                            }
-                        }));
-                    }
-                    dispatch(removeNotification(notificationId));
-                }}
-            />
-
-            {showPrioritization && (
-                <PrioritizationStudio
-                    onClose={() => setShowPrioritization(false)}
+                            dispatch(updateTask({
+                                id: task.id,
+                                updates: {
+                                    reminding: false,
+                                    remindAt: oneHourFromNow,
+                                    reminderStartedAt: Date.now(),
+                                    followUp: task.assignee ? {
+                                        ...(task.followUp || {}),
+                                        dueAt: oneHourFromNow,
+                                        startedAt: Date.now(),
+                                        status: 'pending'
+                                    } : task.followUp
+                                }
+                            }));
+                        }
+                        dispatch(removeNotification(notificationId));
+                    }}
+                    onComplete={(taskId, notificationId) => {
+                        const task = tasks.find(t => t.id === taskId);
+                        if (task) {
+                            dispatch(updateTask({
+                                id: task.id,
+                                updates: {
+                                    reminding: false,
+                                    followUp: task.assignee ? {
+                                        ...(task.followUp || {}),
+                                        status: 'completed',
+                                        dueAt: null
+                                    } : task.followUp,
+                                    remindAt: !task.assignee ? null : task.remindAt,
+                                    reminderStartedAt: !task.assignee ? null : task.reminderStartedAt
+                                }
+                            }));
+                        }
+                        dispatch(removeNotification(notificationId));
+                    }}
                 />
-            )}
-            {/* Storage Status Footer */}
-            <div style={{
-                position: 'fixed',
-                bottom: '10px',
-                right: '10px',
-                fontSize: '10px',
-                color: 'var(--text-muted)',
-                opacity: 0.5,
-                pointerEvents: 'none',
-                display: 'flex',
-                gap: '8px',
-                zIndex: 1000
-            }}>
-                <span>Storage: {window.indexedDB ? 'IndexedDB (Active)' : 'LocalStorage (Fallback)'}</span>
-                <span>v1.2</span>
+
+                {showPrioritization && (
+                    <PrioritizationStudio
+                        onClose={() => setShowPrioritization(false)}
+                    />
+                )}
+                {/* Storage Status Footer */}
+                <div style={{
+                    position: 'fixed',
+                    bottom: '10px',
+                    right: '10px',
+                    fontSize: '10px',
+                    color: 'var(--text-muted)',
+                    opacity: 0.5,
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    gap: '8px',
+                    zIndex: 1000
+                }}>
+                    <span>Storage: {window.indexedDB ? 'IndexedDB (Active)' : 'LocalStorage (Fallback)'}</span>
+                    <span>v1.2</span>
+                </div>
+
+                {/* Goblin Mode */}
+                {showGoblinMode && (
+                    <GoblinMode onExit={() => setShowGoblinMode(false)} />
+                )}
+
+                {/* I'm Bored Dice */}
+                {showBoredDice && (
+                    <BoredDice onClose={() => setShowBoredDice(false)} />
+                )}
+
+                {/* User Settings */}
+                {showSettings && (
+                    <UserSettingsModal onClose={() => setShowSettings(false)} />
+                )}
             </div>
-
-            {/* Goblin Mode */}
-            {showGoblinMode && (
-                <GoblinMode onExit={() => setShowGoblinMode(false)} />
-            )}
-
-            {/* I'm Bored Dice */}
-            {showBoredDice && (
-                <BoredDice onClose={() => setShowBoredDice(false)} />
-            )}
-
-            {/* User Settings */}
-            {showSettings && (
-                <UserSettingsModal onClose={() => setShowSettings(false)} />
-            )}
-        </div>
+        </div >
     );
 }
 
