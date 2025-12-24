@@ -6,6 +6,7 @@ import { selectUser, selectIsOnboarded } from './features/user/userSelectors';
 import { completeOnboarding } from './features/user/userSlice';
 import { bulkAddTasks } from './features/tasks/tasksSlice';
 import { selectAllTasks } from './features/tasks/tasksSelectors';
+import { BrainDumpModal, openBrainDump, selectBrainDumpIsOpen } from './features/brainDump';
 
 
 function App() {
@@ -15,7 +16,18 @@ function App() {
   const user = useSelector(selectUser);
   const isOnboarded = useSelector(selectIsOnboarded);
   const tasks = useSelector(selectAllTasks);
+  const isBrainDumpOpen = useSelector(selectBrainDumpIsOpen);
 
+  // Auto-open brain dump for first-time users with no tasks
+  useEffect(() => {
+    if (isOnboarded && tasks.length === 0 && !isBrainDumpOpen) {
+      // Small delay to let the UI settle
+      const timer = setTimeout(() => {
+        dispatch(openBrainDump());
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isOnboarded, tasks.length, isBrainDumpOpen, dispatch]);
 
   // Apply theme from Redux user state
   useEffect(() => {
@@ -41,8 +53,12 @@ function App() {
       ) : (
         <Dashboard />
       )}
+
+      {/* Brain Dump Modal - available globally */}
+      <BrainDumpModal />
     </div>
   );
 }
 
 export default App;
+

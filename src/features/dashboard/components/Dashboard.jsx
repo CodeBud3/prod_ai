@@ -18,6 +18,7 @@ import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
 import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
 import { selectAllNotifications } from '../../notifications/notificationsSelectors';
+import { openBrainDump } from '../../brainDump';
 import UseAnimations from 'react-useanimations';
 import notification from 'react-useanimations/lib/notification';
 
@@ -864,6 +865,14 @@ export function Dashboard() {
                                     className="btn-secondary"
                                 >
                                     Help me prioritize
+                                </button>
+                                <button
+                                    onClick={() => dispatch(openBrainDump())}
+                                    className="btn-secondary"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
+                                    title="Brain Dump - Unload your mind"
+                                >
+                                    🧠 Brain Dump
                                 </button>
                             </div>
                         </header>
