@@ -29,6 +29,15 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     // New Remind Before State
     const [remindBefore, setRemindBefore] = useState(task.remindBefore || null); // { value: 15, unit: 'minutes' }
 
+    // Prevent background scrolling when modal is open
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     const handleSubmit = (e) => {
         e.preventDefault();
 

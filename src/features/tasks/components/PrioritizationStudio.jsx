@@ -106,6 +106,15 @@ export function PrioritizationStudio({ onClose }) {
     const [draggedTask, setDraggedTask] = useState(null);
     const [editingTask, setEditingTask] = useState(null);
 
+    // Prevent background scrolling when studio is open
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
+
     const activeTasks = tasks.filter(t => t.status !== 'done');
 
     // Helper to get quadrant for a task based on framework
