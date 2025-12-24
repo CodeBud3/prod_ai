@@ -17,7 +17,7 @@ import { fallbackLocalParsing } from './fallback';
  * @param {string} rawInput - User's brain dump text
  * @returns {Promise<Object>} Result with validated tasks
  */
-export async function processBrainDump(rawInput) {
+export async function processBrainDump(rawInput, existingProjects = []) {
     // Debug: Check API key
     console.log('🔑 Checking Gemini availability:', {
         isAvailable: isGeminiAvailable(),
@@ -44,8 +44,8 @@ export async function processBrainDump(rawInput) {
             throw new Error('Failed to initialize Gemini client');
         }
 
-        // Get the prompt with today's date
-        const systemPrompt = getBrainDumpPrompt();
+        // Get the prompt with today's date and existing projects context
+        const systemPrompt = getBrainDumpPrompt(existingProjects);
 
         // Call the LLM with retry logic for rate limits
         let response;
@@ -148,6 +148,7 @@ function enrichTasks(tasks) {
             dueDate: finalDueDate,
             assignee: task.assignee || null,
             project: task.project || null,
+            tags: task.tags || [],
             estimatedDuration: task.estimatedDuration || null,
             status: 'todo',
             createdAt: Date.now(),

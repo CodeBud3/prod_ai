@@ -6,9 +6,14 @@ import { processBrainDump } from '../../services/ai';
  */
 export const processBrainDumpAsync = createAsyncThunk(
     'brainDump/process',
-    async (rawInput, { rejectWithValue }) => {
+    async (rawInput, { rejectWithValue, getState }) => {
         try {
-            const result = await processBrainDump(rawInput);
+            // Get existing projects from state to use as context
+            const state = getState();
+            const tasks = state.tasks?.items || [];
+            const existingProjects = [...new Set(tasks.map(t => t.project).filter(Boolean))];
+
+            const result = await processBrainDump(rawInput, existingProjects);
             return result;
         } catch (error) {
             return rejectWithValue(error.message);
