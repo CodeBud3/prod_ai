@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getMotivationalGreeting } from '../../../utils/greetingLogic';
 import { useSelector, useDispatch } from 'react-redux';
 import { AiEngine } from '../../../services/AiEngine';
-import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio } from '../../tasks';
+import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio, TrashView } from '../../tasks';
 import { GoblinMode } from '../../tasks/components/GoblinMode';
 import { BoredDice } from '../../tasks/components/BoredDice';
 import { UserSettingsModal } from '../../user/components/UserSettingsModal';
@@ -404,6 +404,7 @@ export function Dashboard() {
     const [showBoredDice, setShowBoredDice] = useState(false); // I'm Bored Dice
     const [showSettings, setShowSettings] = useState(false); // User Settings Modal
     const [showInsights, setShowInsights] = useState(false); // Insights Page
+    const [showTrash, setShowTrash] = useState(false); // Trash View
 
     // Calculate today's task stats for the greeting
     const greeting = React.useMemo(() => {
@@ -820,7 +821,28 @@ export function Dashboard() {
                     activeFilter={activeFilter}
                     onFilterChange={(filter) => setActiveFilter(activeFilter === filter ? null : filter)}
                 />
-                {/* Old button removed */}
+
+                {/* Trash Button */}
+                <button
+                    onClick={() => setShowTrash(true)}
+                    style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        borderRadius: '8px',
+                        color: 'var(--text-secondary)',
+                        fontSize: '13px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginTop: '16px',
+                        transition: 'all 0.2s'
+                    }}
+                >
+                    🗑️ Trash
+                </button>
             </div>
 
             {/* Main Content */}
@@ -993,6 +1015,7 @@ export function Dashboard() {
                                 onCancel={() => setEditingTask(null)}
                             />
                         )}
+                        {showTrash && <TrashView onClose={() => setShowTrash(false)} />}
                     </>
                 )}
 

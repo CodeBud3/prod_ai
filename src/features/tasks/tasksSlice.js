@@ -66,7 +66,28 @@ const tasksSlice = createSlice({
         },
 
         deleteTask: (state, action) => {
-            state.items = state.items.filter(t => t.id !== action.payload)
+            // Soft delete: mark as deleted instead of removing
+            const task = state.items.find(t => t.id === action.payload);
+            if (task) {
+                task.deleted = true;
+                task.deletedAt = Date.now();
+            }
+        },
+
+        restoreTask: (state, action) => {
+            const task = state.items.find(t => t.id === action.payload);
+            if (task) {
+                task.deleted = false;
+                task.deletedAt = null;
+            }
+        },
+
+        permanentlyDeleteTask: (state, action) => {
+            state.items = state.items.filter(t => t.id !== action.payload);
+        },
+
+        emptyTrash: (state) => {
+            state.items = state.items.filter(t => !t.deleted);
         },
 
         toggleTask: (state, action) => {
@@ -150,6 +171,9 @@ export const {
     bulkAddTasks,
     updateTask,
     deleteTask,
+    restoreTask,
+    permanentlyDeleteTask,
+    emptyTrash,
     toggleTask,
     setReminder,
     dismissReminder,

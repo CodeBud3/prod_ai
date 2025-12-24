@@ -1,7 +1,19 @@
 import { createSelector } from '@reduxjs/toolkit'
 
-// Basic selectors
-export const selectAllTasks = (state) => state.tasks.items
+// Raw selector (includes deleted tasks) - for internal use
+const selectAllTasksRaw = (state) => state.tasks.items;
+
+// Basic selectors - filters out deleted tasks by default
+export const selectAllTasks = createSelector(
+    [selectAllTasksRaw],
+    (tasks) => tasks.filter(t => !t.deleted)
+);
+
+export const selectDeletedTasks = createSelector(
+    [selectAllTasksRaw],
+    (tasks) => tasks.filter(t => t.deleted)
+);
+
 export const selectTasksLoading = (state) => state.tasks.loading
 export const selectTasksError = (state) => state.tasks.error
 
