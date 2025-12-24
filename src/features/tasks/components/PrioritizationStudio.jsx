@@ -19,7 +19,7 @@ function DraggableTaskItem({ task, isOverlay, toggleTask, setEditingTask, handle
         transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
         opacity: isDragging ? 0.5 : 1,
         cursor: 'grab',
-        touchAction: 'none',
+        // touchAction: 'none', // Removed to allow scrolling on trackpads
         marginBottom: isOverlay ? '0' : '8px'
     };
 
@@ -105,6 +105,15 @@ export function PrioritizationStudio({ onClose }) {
     const [activeId, setActiveId] = useState(null);
     const [draggedTask, setDraggedTask] = useState(null);
     const [editingTask, setEditingTask] = useState(null);
+
+    // Prevent background scrolling when studio is open
+    useEffect(() => {
+        const originalStyle = window.getComputedStyle(document.body).overflow;
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = originalStyle;
+        };
+    }, []);
 
     const activeTasks = tasks.filter(t => t.status !== 'done');
 
@@ -354,10 +363,11 @@ export function PrioritizationStudio({ onClose }) {
                     <div style={{
                         flex: 1,
                         display: 'grid',
-                        gridTemplateColumns: '1fr 1fr',
-                        gridTemplateRows: '1fr 1fr',
+                        gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+                        gridTemplateRows: 'minmax(0, 1fr) minmax(0, 1fr)',
                         gap: '16px',
-                        padding: '4px' // Padding for drag overflow
+                        padding: '4px', // Padding for drag overflow
+                        minHeight: 0 // CRITICAL: Prevents grid from expanding beyond parent in flex container
                     }}>
                         {currentFramework.quadrants.map(q => (
                             <Quadrant
