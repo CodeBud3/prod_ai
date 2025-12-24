@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getMotivationalGreeting } from '../../../utils/greetingLogic';
 import { useSelector, useDispatch } from 'react-redux';
 import { AiEngine } from '../../../services/AiEngine';
 import { QuickAdd, EditTaskModal, TaskItem, PrioritizationStudio } from '../../tasks';
@@ -404,6 +405,36 @@ export function Dashboard() {
     const [showSettings, setShowSettings] = useState(false); // User Settings Modal
     const [showInsights, setShowInsights] = useState(false); // Insights Page
 
+    // Calculate today's task stats for the greeting
+    const greeting = React.useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const todayTasks = tasks.filter(t => {
+            if (!t.dueDate && !t.completedAt) return false;
+
+            // If completed today
+            if (t.completedAt) {
+                const completedDate = new Date(t.completedAt);
+                return completedDate >= today && completedDate < tomorrow;
+            }
+
+            // If due today (and not done)
+            if (t.dueDate) {
+                const dueDate = new Date(t.dueDate);
+                return dueDate >= today && dueDate < tomorrow;
+            }
+            return false;
+        });
+
+        const todayTotal = todayTasks.length;
+        const todayCompleted = todayTasks.filter(t => t.status === 'done').length;
+
+        return getMotivationalGreeting(user.name, todayCompleted, todayTotal);
+    }, [user.name, tasks]);
+
     // Check for reminders
     useEffect(() => {
         const interval = setInterval(() => {
@@ -801,11 +832,13 @@ export function Dashboard() {
                         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                             <div>
                                 <h1 style={{ fontSize: '24px', marginBottom: '4px' }}>
-                                    Good Morning, <span
+                                    {greeting.split(user.name)[0]}
+                                    <span
                                         onClick={() => setShowSettings(true)}
                                         style={{ cursor: 'pointer', borderBottom: '2px dashed rgba(255,255,255,0.3)', transition: 'all 0.2s' }}
                                         title="Click to edit your profile"
                                     >{user.name}</span>
+                                    {greeting.split(user.name)[1]}
                                 </h1>
                                 <p style={{ color: 'var(--text-secondary)' }}>{planSummary || 'Here is your executive summary.'}</p>
                             </div>
