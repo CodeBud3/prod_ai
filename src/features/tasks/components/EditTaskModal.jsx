@@ -90,7 +90,7 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             justifyContent: 'center',
             alignItems: 'center',
             zIndex: 1000
-        }} onClick={onCancel}>
+        }}>
             <div
                 className="glass-panel"
                 style={{
