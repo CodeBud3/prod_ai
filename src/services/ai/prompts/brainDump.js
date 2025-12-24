@@ -48,6 +48,7 @@ PARSING RULES:
    - If a word matches an existing project (case-insensitive), map it to 'project'.
    - If it starts with # or seems like a general label but is NOT a project, map it to 'tags'.
    - If explicitly stated "project X", map to 'project'.
+   - If it is a project but not in the provided context, you may create one.
 8. Estimate durations: "quick call" → 15, "meeting" → 60, "review doc" → 30
 9. Keep titles concise but actionable (start with setting verb when possible)
 10. Return ONLY valid JSON array, no markdown or explanation
