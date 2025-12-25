@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectAllTasks } from '../tasksSelectors';
 import { toggleTask } from '../tasksSlice';
@@ -12,6 +12,14 @@ export function BoredDice({ onClose }) {
     const [isRolling, setIsRolling] = useState(false);
     const [selectedTask, setSelectedTask] = useState(null);
     const [diceEmoji, setDiceEmoji] = useState('🎲');
+
+    // Lock body scroll when component mounts
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto';
+        };
+    }, []);
 
     // Filter incomplete tasks
     const incompleteTasks = tasks.filter(t => t.status !== 'done');

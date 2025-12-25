@@ -12,6 +12,14 @@ export function GoblinMode({ onExit }) {
     const [mode, setMode] = useState('critical'); // 'critical' or 'easy'
     const [showCompleteAnimation, setShowCompleteAnimation] = useState(false);
 
+    // Lock body scroll when component mounts
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'auto'; // or ''
+        };
+    }, []);
+
     // Filter incomplete tasks
     const incompleteTasks = tasks.filter(t => t.status !== 'done');
 
