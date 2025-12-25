@@ -5,6 +5,7 @@ import { ActivityChart } from './widgets/ActivityChart';
 import { TaskProgressCard } from './widgets/TaskProgressCard';
 import { WeeklyProgressRing } from './widgets/WeeklyProgressRing';
 import { PriorityStatsCard } from './widgets/PriorityStatsCard';
+import { MonthlyTaskHeatmap } from './widgets/MonthlyTaskHeatmap';
 
 export function InsightsPage({ onBack }) {
     const tasks = useSelector(selectAllTasks);
@@ -69,18 +70,21 @@ export function InsightsPage({ onBack }) {
             {/* Widget Grid */}
             <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
+                gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: '24px'
             }}>
                 {/* Top Left: Activity Chart (Real Data) */}
                 <ActivityChart tasks={tasks} />
 
-                {/* Top Right: Task Progress */}
+                {/* Top Middle: Task Progress */}
                 <TaskProgressCard
                     tasks={todaysTasks}
                     completed={completedToday}
                     total={totalToday}
                 />
+
+                {/* Top Right: Monthly Heatmap */}
+                <MonthlyTaskHeatmap tasks={tasks} />
 
                 {/* Bottom Left: Weekly Progress */}
                 <WeeklyProgressRing
@@ -89,7 +93,7 @@ export function InsightsPage({ onBack }) {
                     weeklyTotal={weeklyTotal}
                 />
 
-                {/* Bottom Right: Priority Stats (Replacing Time Stats) */}
+                {/* Bottom Middle: Priority Stats */}
                 <PriorityStatsCard
                     tasks={tasks}
                 />
