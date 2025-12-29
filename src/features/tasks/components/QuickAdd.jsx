@@ -24,7 +24,10 @@ export function QuickAdd({ onAdd }) {
     const formRef = useRef(null);
 
     // Close panel when clicking outside
-    useOnClickOutside(formRef, () => {
+    useOnClickOutside(formRef, (e) => {
+        // Ignore clicks on elements that have been removed from the DOM (e.g., suggestions)
+        if (e.target && !e.target.isConnected) return;
+
         if (isOpen) setIsOpen(false);
     });
 
@@ -52,6 +55,19 @@ export function QuickAdd({ onAdd }) {
         setTitle(cleanTitle);
         setParsedTask(null);
         titleInputRef.current?.focus();
+    };
+
+    const resetForm = () => {
+        setTitle('');
+        setDescription('');
+        setPriority('none');
+        setDueDate('');
+        setDueTime('');
+        setAssignee('');
+        setProject('');
+        setCategory('general');
+        setParsedTask(null);
+        setIsOpen(false);
     };
 
     const handleSubmit = (e) => {
@@ -117,19 +133,7 @@ export function QuickAdd({ onAdd }) {
         }
 
         onAdd(taskData);
-
-        // Reset all
-        setTitle('');
-        setDescription('');
-        setPriority('none');
-        setDueDate('');
-        setDueTime('');
-        setAssignee('');
-        setProject('');
-        setCategory('general');
-        setParsedTask(null);
-        setIsOpen(false);
-        // titleInputRef.current?.blur(); // Optional: remove focus
+        resetForm();
     };
 
     const setDateShortcut = (days) => {
@@ -194,6 +198,7 @@ export function QuickAdd({ onAdd }) {
     };
 
     const hasSelections = priority !== 'none' || dueDate || assignee || project || category !== 'general' || description;
+    const hasInput = title.trim() || hasSelections;
 
     return (
         <form ref={formRef} onSubmit={handleSubmit} className="glass-panel" style={{ padding: '16px', marginBottom: '24px' }}>
@@ -273,6 +278,41 @@ export function QuickAdd({ onAdd }) {
                     )}
                 </div>
 
+                {/* Discard Button (Only visible when has input) */}
+                {hasInput && (
+                    <button
+                        type="button"
+                        onClick={resetForm}
+                        style={{
+                            padding: '12px',
+                            color: 'rgba(255,255,255,0.4)',
+                            background: 'transparent',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                        title="Discard (Clear all)"
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.color = '#ef4444'; // Red on hover
+                            e.currentTarget.style.borderColor = '#ef4444';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.color = 'rgba(255,255,255,0.4)';
+                            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                        }}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                        </svg>
+                    </button>
+                )}
+
                 <button
                     type="submit"
                     className="btn-primary"
@@ -351,7 +391,32 @@ export function QuickAdd({ onAdd }) {
 
                     {/* Project */}
                     <div style={sectionStyle}>
-                        <span style={labelStyle}>Project</span>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={labelStyle}>Project</span>
+                            {project && (
+                                <button
+                                    type="button"
+                                    onClick={() => setProject('')}
+                                    style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        fontSize: '10px',
+                                        padding: '0 4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        opacity: 0.7,
+                                        transition: 'opacity 0.2s'
+                                    }}
+                                    title="Clear project"
+                                    onMouseEnter={(e) => e.target.style.opacity = '1'}
+                                    onMouseLeave={(e) => e.target.style.opacity = '0.7'}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
                         {recentProjects.map(p => (
                             <button
                                 key={p}
@@ -386,7 +451,32 @@ export function QuickAdd({ onAdd }) {
 
                     {/* Category */}
                     <div style={sectionStyle}>
-                        <span style={labelStyle}>Bucket</span>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={labelStyle}>Bucket</span>
+                            {category !== 'general' && (
+                                <button
+                                    type="button"
+                                    onClick={() => setCategory('general')}
+                                    style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        color: 'var(--text-muted)',
+                                        cursor: 'pointer',
+                                        fontSize: '10px',
+                                        padding: '0 4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        opacity: 0.7,
+                                        transition: 'opacity 0.2s'
+                                    }}
+                                    title="Clear category"
+                                    onMouseEnter={(e) => e.target.style.opacity = '1'}
+                                    onMouseLeave={(e) => e.target.style.opacity = '0.7'}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
                         {Object.values(TASK_CATEGORIES).map(cat => (
                             <button
                                 key={cat.id}
