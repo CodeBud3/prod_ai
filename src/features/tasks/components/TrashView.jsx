@@ -1,11 +1,22 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectDeletedTasks } from '../tasksSelectors';
 import { restoreTask, permanentlyDeleteTask, emptyTrash } from '../tasksSlice';
+import { ConfirmationModal } from '../../../components/ui';
 
 export function TrashView({ onClose }) {
     const dispatch = useDispatch();
     const deletedTasks = useSelector(selectDeletedTasks);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        isDangerous: false,
+        confirmLabel: 'Confirm'
+    });
 
     // Prevent background scrolling when open
     useEffect(() => {
@@ -21,16 +32,30 @@ export function TrashView({ onClose }) {
     };
 
     const handlePermanentDelete = (taskId) => {
-        if (confirm('Are you sure you want to permanently delete this task? This cannot be undone.')) {
-            dispatch(permanentlyDeleteTask(taskId));
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Permanently?',
+            message: 'Are you sure you want to permanently delete this task? This cannot be undone.',
+            confirmLabel: 'Delete',
+            isDangerous: true,
+            onConfirm: () => dispatch(permanentlyDeleteTask(taskId))
+        });
     };
 
     const handleEmptyTrash = () => {
         if (deletedTasks.length === 0) return;
-        if (confirm(`Are you sure you want to permanently delete ${deletedTasks.length} task(s)? This cannot be undone.`)) {
-            dispatch(emptyTrash());
-        }
+        setConfirmModal({
+            isOpen: true,
+            title: 'Empty Trash?',
+            message: `Are you sure you want to permanently delete ${deletedTasks.length} task(s)? This cannot be undone.`,
+            confirmLabel: 'Empty Trash',
+            isDangerous: true,
+            onConfirm: () => dispatch(emptyTrash())
+        });
+    };
+
+    const closeConfirm = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
     };
 
     const formatDeletedTime = (timestamp) => {
@@ -224,6 +249,17 @@ export function TrashView({ onClose }) {
                     )}
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirm}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                confirmLabel={confirmModal.confirmLabel}
+                isDangerous={confirmModal.isDangerous}
+            />
         </div>
     );
 }
