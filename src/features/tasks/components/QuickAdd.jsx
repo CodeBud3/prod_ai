@@ -417,36 +417,45 @@ export function QuickAdd({ onAdd }) {
                                 </button>
                             )}
                         </div>
-                        {recentProjects.map(p => (
+                        {recentProjects.filter(p => p !== project).map(p => (
                             <button
                                 key={p}
                                 type="button"
-                                onClick={() => setProject(project === p ? '' : p)}
-                                style={chipStyle(project === p, '#3b82f6')}
+                                onClick={() => setProject(p)}
+                                style={chipStyle(false, '#3b82f6')}
                             >
                                 #{p}
                             </button>
                         ))}
-                        {!recentProjects.includes(project) && project && (
-                            <button type="button" style={chipStyle(true, '#3b82f6')}>
-                                #{project}
-                            </button>
-                        )}
-                        <input
-                            type="text"
-                            value={project}
-                            onChange={(e) => setProject(e.target.value)}
-                            placeholder="+ New"
-                            style={{
-                                background: 'transparent',
-                                border: '1px dashed rgba(255,255,255,0.2)',
-                                borderRadius: '16px',
-                                padding: '4px 10px',
-                                color: 'var(--text-secondary)',
-                                fontSize: '11px',
-                                width: '60px'
-                            }}
-                        />
+                        {/* Editable project input styled as tag when has value */}
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: project ? '#3b82f6' : 'transparent',
+                            border: project ? 'none' : '1px dashed rgba(255,255,255,0.2)',
+                            borderRadius: '16px',
+                            padding: '4px 10px',
+                            minWidth: project ? 'auto' : '60px'
+                        }}>
+                            {project && <span style={{ color: 'white', fontSize: '11px', marginRight: '2px' }}>#</span>}
+                            <input
+                                type="text"
+                                value={project}
+                                onChange={(e) => setProject(e.target.value)}
+                                placeholder="+ New"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    outline: 'none',
+                                    color: project ? 'white' : 'var(--text-secondary)',
+                                    fontSize: '11px',
+                                    fontWeight: project ? 500 : 400,
+                                    width: project ? `${Math.max(40, project.length * 8)}px` : '50px',
+                                    minWidth: '40px',
+                                    maxWidth: '200px'
+                                }}
+                            />
+                        </div>
                     </div>
 
                     {/* Category */}
@@ -515,36 +524,45 @@ export function QuickAdd({ onAdd }) {
                     {/* Assignee */}
                     <div style={sectionStyle}>
                         <span style={labelStyle}>Assign</span>
-                        {recentAssignees.map(a => (
+                        {recentAssignees.filter(a => a !== assignee).map(a => (
                             <button
                                 key={a}
                                 type="button"
-                                onClick={() => setAssignee(assignee === a ? '' : a)}
-                                style={chipStyle(assignee === a, '#8b5cf6')}
+                                onClick={() => setAssignee(a)}
+                                style={chipStyle(false, '#8b5cf6')}
                             >
                                 @{a}
                             </button>
                         ))}
-                        {!recentAssignees.includes(assignee) && assignee && (
-                            <button type="button" style={chipStyle(true, '#8b5cf6')}>
-                                @{assignee}
-                            </button>
-                        )}
-                        <input
-                            type="text"
-                            value={assignee}
-                            onChange={(e) => setAssignee(e.target.value)}
-                            placeholder="+ New"
-                            style={{
-                                background: 'transparent',
-                                border: '1px dashed rgba(255,255,255,0.2)',
-                                borderRadius: '16px',
-                                padding: '4px 10px',
-                                color: 'var(--text-secondary)',
-                                fontSize: '11px',
-                                width: '60px'
-                            }}
-                        />
+                        {/* Editable assignee input styled as tag when has value */}
+                        <div style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            background: assignee ? '#8b5cf6' : 'transparent',
+                            border: assignee ? 'none' : '1px dashed rgba(255,255,255,0.2)',
+                            borderRadius: '16px',
+                            padding: '4px 10px',
+                            minWidth: assignee ? 'auto' : '60px'
+                        }}>
+                            {assignee && <span style={{ color: 'white', fontSize: '11px', marginRight: '2px' }}>@</span>}
+                            <input
+                                type="text"
+                                value={assignee}
+                                onChange={(e) => setAssignee(e.target.value)}
+                                placeholder="+ New"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    outline: 'none',
+                                    color: assignee ? 'white' : 'var(--text-secondary)',
+                                    fontSize: '11px',
+                                    fontWeight: assignee ? 500 : 400,
+                                    width: assignee ? `${Math.max(40, assignee.length * 8)}px` : '50px',
+                                    minWidth: '40px',
+                                    maxWidth: '200px'
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
