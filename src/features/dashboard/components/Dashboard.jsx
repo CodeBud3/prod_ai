@@ -24,6 +24,7 @@ import { openBrainDump } from '../../brainDump';
 import UseAnimations from 'react-useanimations';
 import notification from 'react-useanimations/lib/notification';
 import { getSortedTasks, formatTimestamp, getPriorityColor } from '../utils/dashboardUtils';
+import { UserMenu, AuthModal } from '../../auth';
 
 export function Dashboard() {
     const dispatch = useDispatch();
@@ -47,6 +48,7 @@ export function Dashboard() {
     const [showBoredDice, setShowBoredDice] = useState(false); // I'm Bored Dice
     const [showSettings, setShowSettings] = useState(false); // User Settings Modal
     const [showInsights, setShowInsights] = useState(false); // Insights Page
+    const [showAuthModal, setShowAuthModal] = useState(false); // Authentication Modal
     const [showTrash, setShowTrash] = useState(false); // Trash View
 
     // Calculate today's task stats for the greeting
@@ -686,6 +688,7 @@ export function Dashboard() {
                                 >
                                     🧠 Brain Dump
                                 </button>
+                                <UserMenu onSignInClick={() => setShowAuthModal(true)} />
                             </div>
                         </header>
 
@@ -885,6 +888,12 @@ export function Dashboard() {
                 {showSettings && (
                     <UserSettingsModal onClose={() => setShowSettings(false)} />
                 )}
+
+                {/* Auth Modal */}
+                <AuthModal
+                    isOpen={showAuthModal}
+                    onClose={() => setShowAuthModal(false)}
+                />
             </div>
         </div >
     );

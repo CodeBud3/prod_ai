@@ -7,6 +7,8 @@ import { completeOnboarding } from './features/user/userSlice';
 import { bulkAddTasks } from './features/tasks/tasksSlice';
 import { selectAllTasks } from './features/tasks/tasksSelectors';
 import { BrainDumpModal, openBrainDump, selectBrainDumpIsOpen } from './features/brainDump';
+import { selectIsAuthenticated, selectAuthUser } from './features/auth/authSelectors';
+import { initializeSync } from './features/tasks/tasksSlice';
 
 
 function App() {
@@ -28,6 +30,16 @@ function App() {
       return () => clearTimeout(timer);
     }
   }, [isOnboarded, tasks.length, isBrainDumpOpen, dispatch]);
+
+  // Sync initialization
+  const isAuthenticated = useSelector(selectIsAuthenticated);
+  const authUser = useSelector(selectAuthUser);
+
+  useEffect(() => {
+    if (isAuthenticated && authUser?.id) {
+      dispatch(initializeSync(authUser.id));
+    }
+  }, [isAuthenticated, authUser?.id, dispatch]);
 
   // Apply theme from Redux user state
   useEffect(() => {

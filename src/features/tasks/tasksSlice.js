@@ -1,11 +1,16 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { AiEngine } from '../../services/AiEngine'
+import { SyncService } from '../../services/SyncService'
 
 const initialState = {
     items: [],
     loading: false,
     error: null
 }
+
+// Async thunk for initializing sync (migrate + pull)
+// Async thunk moved to bottom to avoid circular dependency
+
 
 // Helper to calculate the next occurrence date for recurring tasks
 const calculateNextOccurrence = (task) => {
@@ -281,3 +286,33 @@ export const {
 } = tasksSlice.actions
 
 export default tasksSlice.reducer
+
+// Async thunk for initializing sync (migrate + pull)
+// Defined here to have access to tasksSlice.actions
+export const initializeSync = createAsyncThunk(
+    'tasks/initializeSync',
+    async (userId, { getState, dispatch, rejectWithValue }) => {
+        try {
+            const state = getState();
+            // 1. Migrate local tasks (if any)
+            const localTasks = state.tasks?.items || [];
+            if (localTasks.length > 0) {
+                await SyncService.migrateGuestData(localTasks, userId);
+            }
+
+            // 2. Pull changes from cloud
+            const { data, error } = await SyncService.pullChanges(userId);
+            if (error) throw error;
+
+            if (data) {
+                // Update local store with cloud data
+                // We use the action creator directly from the slice object we just created
+                dispatch(tasksSlice.actions.bulkUpdateTasks(data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Initialize Sync Failed:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+)
