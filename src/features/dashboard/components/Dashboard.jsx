@@ -181,6 +181,11 @@ export function Dashboard() {
         }
     }, [dispatch, hasPlan, tasks, user.role]);
 
+    // Scroll to top when filters change
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [activeFilter, activeBucket, showTrash, showInsights, showSettings]);
+
     const handleAddTask = async (newTask) => {
         const task = {
             id: Date.now() + Math.random(),
@@ -338,7 +343,7 @@ export function Dashboard() {
     }
 
     return (
-        <div style={{ width: '100%', maxWidth: '98%', padding: '20px', display: 'flex', gap: '32px', alignItems: 'flex-start', margin: '0 auto' }}>
+        <div style={{ width: '100%', maxWidth: '100%', display: 'flex', alignItems: 'flex-start' }}>
             {/* Hidden iframe to unlock Chrome autoplay - plays silent audio on page load */}
             <iframe
                 src="/silence.mp3"
@@ -347,8 +352,17 @@ export function Dashboard() {
                 title="Audio unlock"
             />
 
-            {/* Left Sidebar */}
-            <div style={{ width: '300px', flexShrink: 0, position: 'sticky', top: '20px' }}>
+            {/* Left Sidebar - Fixed Position */}
+            <div style={{
+                width: '260px',
+                position: 'fixed',
+                top: '20px',
+                left: '20px',
+                bottom: '20px',
+                overflowY: 'auto',
+                paddingRight: '10px', // For scrollbar breathing room
+                zIndex: 100
+            }}>
                 {/* Bucket Filter */}
                 <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
                     <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px', letterSpacing: '1px' }}>
@@ -475,8 +489,8 @@ export function Dashboard() {
                 </button>
             </div>
 
-            {/* Main Content */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Main Content - Offset by Sidebar width + gap */}
+            <div style={{ flex: 1, minWidth: 0, marginLeft: '300px', padding: '20px', paddingRight: '40px' }}>
                 {showInsights ? (
                     <InsightsPage />
                 ) : (
