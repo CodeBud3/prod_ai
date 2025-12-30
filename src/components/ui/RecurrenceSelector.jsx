@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function RecurrenceSelector({ value, onChange }) {
+export function RecurrenceSelector({ value, onChange, defaultExpanded = false }) {
     const defaultRecurrence = {
         enabled: false,
         frequency: 'weekly',
@@ -17,7 +17,7 @@ export function RecurrenceSelector({ value, onChange }) {
     };
 
     const recurrence = value || defaultRecurrence;
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded || recurrence.enabled);
 
     const updateRecurrence = (updates) => {
         onChange({ ...recurrence, ...updates });

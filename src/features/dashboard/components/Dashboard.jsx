@@ -411,6 +411,119 @@ export function Dashboard() {
                     </div>
                 </div>
 
+                {/* Completed Today Counter */}
+                {(() => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const completedToday = tasks.filter(t => {
+                        if (t.status !== 'done' || !t.completedAt) return false;
+                        const completedDate = new Date(t.completedAt);
+                        return completedDate >= today && completedDate < tomorrow;
+                    }).length;
+
+                    return (
+                        <div className="glass-panel" style={{
+                            padding: '16px',
+                            marginBottom: '20px',
+                            background: completedToday > 0 ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(52, 211, 153, 0.1))' : undefined,
+                            borderColor: completedToday > 0 ? 'rgba(16, 185, 129, 0.3)' : undefined
+                        }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div>
+                                    <div style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '1px' }}>
+                                        Completed Today
+                                    </div>
+                                    <div style={{ fontSize: '28px', fontWeight: 700, color: completedToday > 0 ? '#34d399' : 'var(--text-secondary)' }}>
+                                        {completedToday}
+                                    </div>
+                                </div>
+                                <div style={{ fontSize: '32px', opacity: 0.5 }}>
+                                    {completedToday === 0 ? '💤' : completedToday < 3 ? '🔥' : completedToday < 6 ? '🚀' : '⭐'}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* Upcoming Deadlines (Next 3) */}
+                {(() => {
+                    const now = new Date();
+                    const upcomingTasks = tasks
+                        .filter(t => t.status !== 'done' && t.dueDate && !t.deleted)
+                        .map(t => ({ ...t, dueTime: new Date(t.dueDate).getTime() }))
+                        .filter(t => t.dueTime > now.getTime())
+                        .sort((a, b) => a.dueTime - b.dueTime)
+                        .slice(0, 3);
+
+                    if (upcomingTasks.length === 0) return null;
+
+                    const formatRelativeTime = (dueDate) => {
+                        const now = new Date();
+                        const due = new Date(dueDate);
+                        const diffMs = due.getTime() - now.getTime();
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+                        if (diffHours < 1) return 'Soon';
+                        if (diffHours < 24) return `${diffHours}h`;
+                        if (diffDays === 1) return 'Tomorrow';
+                        if (diffDays < 7) return `${diffDays}d`;
+                        return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    };
+
+                    return (
+                        <div className="glass-panel" style={{ padding: '16px', marginBottom: '20px' }}>
+                            <h3 style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '12px', letterSpacing: '1px' }}>
+                                ⏰ Upcoming
+                            </h3>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {upcomingTasks.map((t, idx) => (
+                                    <div
+                                        key={t.id}
+                                        onClick={() => setEditingTask(t)}
+                                        style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '10px',
+                                            padding: '8px 10px',
+                                            background: idx === 0 ? 'rgba(251, 191, 36, 0.1)' : 'rgba(255,255,255,0.03)',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s',
+                                            border: idx === 0 ? '1px solid rgba(251, 191, 36, 0.3)' : '1px solid transparent'
+                                        }}
+                                    >
+                                        <div style={{
+                                            minWidth: '36px',
+                                            fontSize: '11px',
+                                            fontWeight: 600,
+                                            color: idx === 0 ? '#fbbf24' : 'var(--text-secondary)',
+                                            textAlign: 'center'
+                                        }}>
+                                            {formatRelativeTime(t.dueDate)}
+                                        </div>
+                                        <div style={{
+                                            flex: 1,
+                                            fontSize: '12px',
+                                            color: 'var(--text-primary)',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {t.title}
+                                        </div>
+                                        {t.recurrence?.enabled && (
+                                            <span style={{ fontSize: '10px' }}>🔁</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()}
+
                 {/* Pomodoro Timer - Focus Mode Only */}
                 {isFocusMode && <PomodoroTimer />}
 

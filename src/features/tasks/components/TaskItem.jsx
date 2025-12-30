@@ -18,15 +18,22 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
     const activeFocusColor = task.focusColor ? focusColors[task.focusColor] : null;
     const [showFocusPicker, setShowFocusPicker] = useState(false);
     const [motivationalMessage, setMotivationalMessage] = useState(null);
+    const [showRecurringFlash, setShowRecurringFlash] = useState(false);
 
     const handleToggle = (e) => {
         const isCompleting = task.status !== 'done';
+        const isRecurring = task.recurrence?.enabled;
 
         if (isCompleting) {
             // Confetti explosion from the checkbox position
             const rect = e.target.getBoundingClientRect();
             const x = (rect.left + rect.width / 2) / window.innerWidth;
             const y = (rect.top + rect.height / 2) / window.innerHeight;
+
+            // Same physics for all tasks, just different colors for recurring
+            const confettiColors = isRecurring
+                ? ['#10b981', '#34d399', '#6ee7b7', '#fbbf24', '#f59e0b'] // Green + gold for recurring
+                : ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444']; // Standard rainbow
 
             confetti({
                 particleCount: 40,
@@ -36,21 +43,27 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                 decay: 0.9,
                 scalar: 0.6,
                 origin: { x, y },
-                colors: ['#a855f7', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'],
+                colors: confettiColors,
                 disableForReducedMotion: true,
                 ticks: 80,
             });
 
-            // Motivational Message Logic
+            // For recurring tasks: show a brief visual flash since checkbox won't stay checked
+            if (isRecurring) {
+                setShowRecurringFlash(true);
+                setTimeout(() => setShowRecurringFlash(false), 600);
+            }
+
+            // Motivational Message Logic - special messages for recurring
             const messages = {
+                recurring: ['🔁 Rescheduled!', '🔁 See you next time!', '🔁 Streak +1!', '🔁 Done & Queued!'],
                 high: ['Awesome!', 'Major Win!', 'Crushed It!', 'On Fire! 🔥'],
                 medium: ['Great Job!', 'Nice Work!', 'Keep it up!', 'Well Done!'],
                 low: ['Good!', 'Done!', 'Check!', 'Nice!'],
                 none: ['Good!', 'Done!', 'Check!', 'Nice!']
             };
 
-            const priority = task.priority || 'none';
-            const pool = messages[priority] || messages.none;
+            const pool = isRecurring ? messages.recurring : (messages[task.priority] || messages.none);
             const randomMsg = pool[Math.floor(Math.random() * pool.length)];
             setMotivationalMessage(randomMsg);
         }

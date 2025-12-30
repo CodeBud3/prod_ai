@@ -137,8 +137,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             <div
                 className="glass-panel"
                 style={{
-                    width: '500px',
-                    maxWidth: '90%',
+                    width: '1000px',
+                    maxWidth: '95%',
                     maxHeight: '90vh',
                     display: 'flex',
                     flexDirection: 'column',
@@ -146,254 +146,249 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                 }}
                 onClick={e => e.stopPropagation()}
             >
-                <h2 style={{ marginBottom: '24px', flexShrink: 0 }}>Edit Task</h2>
+                <h2 style={{ marginBottom: '20px', flexShrink: 0 }}>Edit Task</h2>
 
                 <form onSubmit={handleSubmit} style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '20px',
+                    gap: '16px',
                     flex: 1,
                     overflow: 'hidden'
                 }}>
+                    {/* Title - Full Width */}
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Title</label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            className="glass-input"
+                            style={{ width: '100%', padding: '10px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', fontSize: '15px' }}
+                            autoFocus
+                        />
+                    </div>
+
+                    {/* 2-Column Grid Layout */}
                     <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: '20px',
                         flex: 1,
-                        overflowY: 'auto',
-                        paddingRight: '4px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '20px'
+                        minHeight: 0
                     }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Title</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                                className="glass-input"
-                                style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white' }}
-                                autoFocus
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Description</label>
-                            <textarea
-                                ref={textareaRef}
-                                value={description}
-                                onChange={e => setDescription(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    minHeight: '100px',
-                                    padding: '12px',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    borderRadius: '8px',
-                                    color: 'white',
-                                    fontFamily: 'inherit',
-                                    resize: 'none',
-                                    overflow: 'hidden'
-                                }}
-                                placeholder="Add details..."
-                            />
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '20px' }}>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Priority</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    {priorityConfig.map(p => (
-                                        <FunnyTooltip key={p.id} context="priority" content={p.label}>
-                                            <button
-                                                type="button"
-                                                onClick={() => setPriority(p.id)}
-                                                style={{
-                                                    width: '32px',
-                                                    height: '32px',
-                                                    borderRadius: '50%',
-                                                    border: priority === p.id ? '3px solid white' : '2px solid transparent',
-                                                    background: p.color,
-                                                    cursor: 'pointer',
-                                                    padding: 0,
-                                                    transition: 'transform 0.2s'
-                                                }}
-                                                aria-label={p.label}
-                                            />
-                                        </FunnyTooltip>
-                                    ))}
-                                </div>
+                        {/* LEFT COLUMN */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minHeight: 0 }}>
+                            {/* Description */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Description</label>
+                                <textarea
+                                    ref={textareaRef}
+                                    value={description}
+                                    onChange={e => setDescription(e.target.value)}
+                                    style={{
+                                        flex: 1,
+                                        minHeight: '80px',
+                                        padding: '10px 12px',
+                                        background: 'rgba(255,255,255,0.05)',
+                                        border: '1px solid rgba(255,255,255,0.1)',
+                                        borderRadius: '8px',
+                                        color: 'white',
+                                        fontFamily: 'inherit',
+                                        resize: 'none',
+                                        fontSize: '13px'
+                                    }}
+                                    placeholder="Add details..."
+                                />
                             </div>
 
-                            <div style={{ flex: 1 }}>
-                                <DateTimePicker
-                                    label="Deadline"
-                                    value={dueDate ? new Date(dueDate).getTime() : null}
-                                    onChange={(timestamp) => setDueDate(formatToDatetimeLocal(timestamp))}
-                                    onClear={() => setDueDate('')}
-                                />
-
-                                {/* Remind Before Options */}
-                                {dueDate && (
-                                    <div style={{ marginTop: '8px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                            <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>Remind me before:</span>
-                                            {remindBefore && (
+                            {/* Priority & Project */}
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Priority</label>
+                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                        {priorityConfig.map(p => (
+                                            <FunnyTooltip key={p.id} context="priority" content={p.label}>
                                                 <button
                                                     type="button"
-                                                    onClick={() => setRemindBefore(null)}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer' }}
-                                                >
-                                                    Clear
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {!remindBefore ? (
-                                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                                                {reminderOptions.map(opt => (
-                                                    <button
-                                                        key={opt.label}
-                                                        type="button"
-                                                        onClick={() => setRemindBefore({ value: opt.value, unit: opt.unit })}
-                                                        style={{
-                                                            background: 'rgba(255,255,255,0.1)',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            padding: '2px 6px',
-                                                            fontSize: '10px',
-                                                            color: 'var(--text-secondary)',
-                                                            cursor: 'pointer'
-                                                        }}
-                                                    >
-                                                        {opt.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div style={{
-                                                fontSize: '11px',
-                                                color: 'var(--accent-primary)',
-                                                background: 'rgba(59, 130, 246, 0.1)',
-                                                padding: '4px 8px',
-                                                borderRadius: '4px',
-                                                display: 'inline-block'
-                                            }}>
-                                                🔔 {remindBefore.value} {remindBefore.unit} before
-                                            </div>
-                                        )}
+                                                    onClick={() => setPriority(p.id)}
+                                                    style={{
+                                                        width: '28px',
+                                                        height: '28px',
+                                                        borderRadius: '50%',
+                                                        border: priority === p.id ? '3px solid white' : '2px solid transparent',
+                                                        background: p.color,
+                                                        cursor: 'pointer',
+                                                        padding: 0
+                                                    }}
+                                                />
+                                            </FunnyTooltip>
+                                        ))}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Recurrence Selector */}
-                        <RecurrenceSelector
-                            value={recurrence}
-                            onChange={setRecurrence}
-                        />
-
-                        <div style={{ display: 'flex', gap: '20px' }}>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Project</label>
-                                <input
-                                    type="text"
-                                    value={project}
-                                    onChange={e => setProject(e.target.value)}
-                                    placeholder="Project Name"
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: 'white'
-                                    }}
-                                />
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Assign To</label>
-                                <input
-                                    type="text"
-                                    value={assignee}
-                                    onChange={e => setAssignee(e.target.value)}
-                                    placeholder="Name or Team"
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: 'white'
-                                    }}
-                                />
-
-                                {/* Follow Up Section - Only show if assignee is present */}
-                                {assignee && (
-                                    <div style={{ marginTop: '12px' }}>
-                                        <DateTimePicker
-                                            label="Follow Up"
-                                            value={followUp?.dueAt}
-                                            onChange={(timestamp) => setFollowUp({ ...followUp, dueAt: timestamp, status: 'pending' })}
-                                            onClear={() => setFollowUp({ ...followUp, dueAt: null })}
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Tags</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                                {tags.map(tag => (
-                                    <span key={tag} style={{
-                                        background: 'rgba(255,255,255,0.1)',
-                                        padding: '4px 10px',
-                                        borderRadius: '16px',
-                                        fontSize: '12px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '6px'
-                                    }}>
-                                        #{tag}
-                                        <button
-                                            type="button"
-                                            onClick={() => setTags(tags.filter(t => t !== tag))}
-                                            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, fontSize: '14px' }}
-                                        >
-                                            ×
-                                        </button>
-                                    </span>
-                                ))}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Project</label>
                                     <input
                                         type="text"
-                                        value={tagInput}
-                                        onChange={e => setTagInput(e.target.value)}
-                                        onKeyDown={e => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                if (tagInput.trim()) {
-                                                    setTags([...tags, tagInput.trim()]);
-                                                    setTagInput('');
-                                                }
-                                            }
-                                        }}
-                                        placeholder="+ Add tag"
+                                        value={project}
+                                        onChange={e => setProject(e.target.value)}
+                                        placeholder="#Project"
                                         style={{
-                                            background: 'transparent',
-                                            border: '1px dashed rgba(255,255,255,0.2)',
-                                            borderRadius: '16px',
-                                            padding: '4px 10px',
-                                            fontSize: '12px',
-                                            color: 'var(--text-secondary)',
-                                            width: '100px'
+                                            width: '100%',
+                                            padding: '6px 10px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '6px',
+                                            color: 'white',
+                                            fontSize: '13px'
                                         }}
                                     />
                                 </div>
                             </div>
+
+                            {/* Assignee & Tags */}
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Assign To</label>
+                                    <input
+                                        type="text"
+                                        value={assignee}
+                                        onChange={e => setAssignee(e.target.value)}
+                                        placeholder="@name"
+                                        style={{
+                                            width: '100%',
+                                            padding: '6px 10px',
+                                            background: 'rgba(255,255,255,0.05)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: '6px',
+                                            color: 'white',
+                                            fontSize: '13px'
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Tags</label>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
+                                        {tags.slice(0, 2).map(tag => (
+                                            <span key={tag} style={{
+                                                background: 'rgba(255,255,255,0.1)',
+                                                padding: '2px 8px',
+                                                borderRadius: '12px',
+                                                fontSize: '11px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}>
+                                                #{tag}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setTags(tags.filter(t => t !== tag))}
+                                                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0, fontSize: '12px' }}
+                                                >×</button>
+                                            </span>
+                                        ))}
+                                        {tags.length > 2 && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>+{tags.length - 2}</span>}
+                                        <input
+                                            type="text"
+                                            value={tagInput}
+                                            onChange={e => setTagInput(e.target.value)}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    if (tagInput.trim()) {
+                                                        setTags([...tags, tagInput.trim()]);
+                                                        setTagInput('');
+                                                    }
+                                                }
+                                            }}
+                                            placeholder="+tag"
+                                            style={{
+                                                background: 'transparent',
+                                                border: '1px dashed rgba(255,255,255,0.2)',
+                                                borderRadius: '12px',
+                                                padding: '2px 8px',
+                                                fontSize: '11px',
+                                                color: 'var(--text-secondary)',
+                                                width: '50px'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* RIGHT COLUMN */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minHeight: 0, overflowY: 'auto' }}>
+                            {/* Deadline */}
+                            <DateTimePicker
+                                label="Deadline"
+                                value={dueDate ? new Date(dueDate).getTime() : null}
+                                onChange={(timestamp) => setDueDate(formatToDatetimeLocal(timestamp))}
+                                onClear={() => setDueDate('')}
+                                defaultExpanded={true}
+                            />
+
+                            {/* Remind Before */}
+                            {dueDate && (
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: '8px',
+                                    padding: '10px 12px',
+                                    border: '1px solid rgba(255,255,255,0.08)'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>🔔 Remind Before</span>
+                                        {remindBefore && (
+                                            <button type="button" onClick={() => setRemindBefore(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer' }}>Clear</button>
+                                        )}
+                                    </div>
+                                    {!remindBefore ? (
+                                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                                            {reminderOptions.map(opt => (
+                                                <button
+                                                    key={opt.label}
+                                                    type="button"
+                                                    onClick={() => setRemindBefore({ value: opt.value, unit: opt.unit })}
+                                                    style={{
+                                                        background: 'rgba(255,255,255,0.1)',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '4px 8px',
+                                                        fontSize: '11px',
+                                                        color: 'var(--text-secondary)',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                >{opt.label}</button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>
+                                            ✓ {remindBefore.value} {remindBefore.unit} before
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Recurrence */}
+                            <RecurrenceSelector
+                                value={recurrence}
+                                onChange={setRecurrence}
+                                defaultExpanded={true}
+                            />
+
+                            {/* Follow Up - only if assignee */}
+                            {assignee && (
+                                <DateTimePicker
+                                    label="Follow Up"
+                                    value={followUp?.dueAt}
+                                    onChange={(timestamp) => setFollowUp({ ...followUp, dueAt: timestamp, status: 'pending' })}
+                                    onClear={() => setFollowUp({ ...followUp, dueAt: null })}
+                                />
+                            )}
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    {/* Footer Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)', flexShrink: 0 }}>
                         <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
                         <button type="submit" className="btn-primary">Save Changes</button>
                     </div>
