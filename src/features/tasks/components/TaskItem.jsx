@@ -219,6 +219,45 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                         </div>
                     )}
 
+                    {/* Recurrence Indicator */}
+                    {task.recurrence?.enabled && (() => {
+                        const rec = task.recurrence;
+                        const time = rec.time || '09:00';
+                        const [h, m] = time.split(':').map(Number);
+                        const timeStr = `${h > 12 ? h - 12 : h || 12}${m > 0 ? ':' + String(m).padStart(2, '0') : ''}${h >= 12 ? 'PM' : 'AM'}`;
+
+                        let label = '';
+                        if (rec.frequency === 'daily') {
+                            label = rec.interval > 1 ? `Every ${rec.interval}d` : 'Daily';
+                        } else if (rec.frequency === 'weekly') {
+                            const dayMap = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+                            const days = (rec.daysOfWeek || []).map(d => dayMap[d]).join(',');
+                            label = days.length > 6 ? 'Weekly' : days;
+                        } else if (rec.frequency === 'monthly') {
+                            const day = rec.dayOfMonth || 1;
+                            label = `${day}${day === 1 ? 'st' : day === 2 ? 'nd' : day === 3 ? 'rd' : 'th'}`;
+                        }
+
+                        return (
+                            <div style={{
+                                fontSize: '10px',
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                color: '#34d399',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                whiteSpace: 'nowrap',
+                                fontWeight: 500
+                            }}
+                                title={`Repeats ${rec.frequency} at ${timeStr}${task.completionCount ? ` • ${task.completionCount} completed` : ''}`}
+                            >
+                                🔁 {label} @ {timeStr}
+                            </div>
+                        );
+                    })()}
+
                     {/* Unified Action Dropdown (Revisit / Follow Up) */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <select

@@ -7,6 +7,77 @@ const initialState = {
     error: null
 }
 
+// Helper to calculate the next occurrence date for recurring tasks
+const calculateNextOccurrence = (task) => {
+    const { recurrence, dueDate } = task;
+    if (!recurrence?.enabled || !dueDate) return null;
+
+    const current = new Date(dueDate);
+    const interval = recurrence.interval || 1;
+    let next = new Date(current);
+
+    switch (recurrence.frequency) {
+        case 'daily':
+            next.setDate(next.getDate() + interval);
+            break;
+
+        case 'weekly':
+            // Find the next matching day of week
+            const daysOfWeek = recurrence.daysOfWeek || [current.getDay()];
+            let daysToAdd = 1;
+
+            for (let i = 1; i <= 7 * interval; i++) {
+                const testDate = new Date(current);
+                testDate.setDate(testDate.getDate() + i);
+                if (daysOfWeek.includes(testDate.getDay())) {
+                    const weeksPassed = Math.floor(i / 7);
+                    if (weeksPassed < interval || (i % 7 === 0 && weeksPassed === interval)) {
+                        daysToAdd = i;
+                        break;
+                    } else if (weeksPassed >= interval - 1) {
+                        daysToAdd = i;
+                        break;
+                    }
+                }
+            }
+            next.setDate(current.getDate() + daysToAdd);
+            break;
+
+        case 'monthly':
+            next.setMonth(next.getMonth() + interval);
+            const targetDay = recurrence.dayOfMonth || current.getDate();
+            const daysInMonth = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+            next.setDate(Math.min(targetDay, daysInMonth));
+            break;
+
+        default:
+            next.setDate(next.getDate() + 1);
+    }
+
+    // Apply recurrence time if specified
+    if (recurrence.time) {
+        const [hours, minutes] = recurrence.time.split(':').map(Number);
+        next.setHours(hours, minutes, 0, 0);
+    }
+
+    // Check if we've passed the end date
+    if (recurrence.endType === 'date' && recurrence.endDate) {
+        if (next.getTime() > recurrence.endDate) {
+            return null; // No more occurrences
+        }
+    }
+
+    // Format as datetime-local string
+    const year = next.getFullYear();
+    const month = String(next.getMonth() + 1).padStart(2, '0');
+    const day = String(next.getDate()).padStart(2, '0');
+    const hours = String(next.getHours()).padStart(2, '0');
+    const minutes = String(next.getMinutes()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+
 // Async thunk for AI-powered task generation
 export const generateTaskPlan = createAsyncThunk(
     'tasks/generatePlan',
@@ -94,8 +165,34 @@ const tasksSlice = createSlice({
             const task = state.items.find(t => t.id === action.payload)
             if (task) {
                 const isDone = task.status === 'done'
-                task.status = isDone ? 'todo' : 'done'
-                task.completedAt = isDone ? null : Date.now()
+
+                // If completing a recurring task, reschedule instead of marking done
+                if (!isDone && task.recurrence?.enabled && task.dueDate) {
+                    const nextDate = calculateNextOccurrence(task);
+                    if (nextDate) {
+                        // Update to next occurrence
+                        task.dueDate = nextDate;
+                        task.completedAt = null;
+                        task.lastCompletedAt = Date.now();
+                        task.completionCount = (task.completionCount || 0) + 1;
+
+                        // Check if we've reached the end count
+                        if (task.recurrence.endType === 'count' &&
+                            task.completionCount >= task.recurrence.endCount) {
+                            task.recurrence.enabled = false;
+                            task.status = 'done';
+                            task.completedAt = Date.now();
+                        }
+                    } else {
+                        // No more occurrences, mark as done
+                        task.status = 'done'
+                        task.completedAt = Date.now()
+                    }
+                } else {
+                    // Normal toggle behavior
+                    task.status = isDone ? 'todo' : 'done'
+                    task.completedAt = isDone ? null : Date.now()
+                }
                 task.focusColor = isDone ? task.focusColor : null
             }
         },

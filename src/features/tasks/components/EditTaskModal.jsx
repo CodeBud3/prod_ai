@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FunnyTooltip } from '../../../components/ui';
+import { FunnyTooltip, DateTimePicker, RecurrenceSelector } from '../../../components/ui';
 
 const formatToDatetimeLocal = (timestamp) => {
     if (!timestamp) return '';
@@ -39,6 +39,18 @@ export function EditTaskModal({ task, onSave, onCancel }) {
 
     // New Remind Before State
     const [remindBefore, setRemindBefore] = useState(task.remindBefore || null); // { value: 15, unit: 'minutes' }
+
+    // Recurrence State
+    const [recurrence, setRecurrence] = useState(task.recurrence || {
+        enabled: false,
+        frequency: 'weekly',
+        interval: 1,
+        daysOfWeek: [new Date().getDay()],
+        dayOfMonth: new Date().getDate(),
+        endType: 'never',
+        endDate: null,
+        endCount: 10
+    });
 
     const textareaRef = React.useRef(null);
 
@@ -88,7 +100,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
             followUp,
             project: project.trim() || null,
             remindBefore,
-            remindAt
+            remindAt,
+            recurrence
         });
     };
 
@@ -211,20 +224,11 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                             </div>
 
                             <div style={{ flex: 1 }}>
-                                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Deadline</label>
-                                <input
-                                    type="datetime-local"
-                                    value={dueDate}
-                                    onChange={e => setDueDate(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        borderRadius: '8px',
-                                        color: 'white',
-                                        fontSize: '12px'
-                                    }}
+                                <DateTimePicker
+                                    label="Deadline"
+                                    value={dueDate ? new Date(dueDate).getTime() : null}
+                                    onChange={(timestamp) => setDueDate(formatToDatetimeLocal(timestamp))}
+                                    onClear={() => setDueDate('')}
                                 />
 
                                 {/* Remind Before Options */}
@@ -281,6 +285,12 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                             </div>
                         </div>
 
+                        {/* Recurrence Selector */}
+                        <RecurrenceSelector
+                            value={recurrence}
+                            onChange={setRecurrence}
+                        />
+
                         <div style={{ display: 'flex', gap: '20px' }}>
                             <div style={{ flex: 1 }}>
                                 <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Project</label>
@@ -318,116 +328,13 @@ export function EditTaskModal({ task, onSave, onCancel }) {
 
                                 {/* Follow Up Section - Only show if assignee is present */}
                                 {assignee && (
-                                    <div style={{ marginTop: '12px', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                            <label style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' }}>
-                                                🔔 Follow Up
-                                            </label>
-                                            {followUp?.dueAt && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setFollowUp({ ...followUp, dueAt: null })}
-                                                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '10px', cursor: 'pointer' }}
-                                                >
-                                                    Clear
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        <select
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (!val) return;
-
-                                                let dueAt = Date.now();
-                                                const now = Date.now();
-                                                const d = new Date();
-
-                                                if (!isNaN(val)) {
-                                                    dueAt = now + parseInt(val);
-                                                } else {
-                                                    switch (val) {
-                                                        case 'tomorrow_morning':
-                                                            d.setDate(d.getDate() + 1);
-                                                            d.setHours(9, 0, 0, 0);
-                                                            break;
-                                                        case 'tomorrow_eod':
-                                                            d.setDate(d.getDate() + 1);
-                                                            d.setHours(17, 0, 0, 0);
-                                                            break;
-                                                        case '2d':
-                                                            d.setDate(d.getDate() + 2);
-                                                            d.setHours(9, 0, 0, 0);
-                                                            break;
-                                                        case '3d':
-                                                            d.setDate(d.getDate() + 3);
-                                                            d.setHours(9, 0, 0, 0);
-                                                            break;
-                                                        case 'next_monday_morning':
-                                                            d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7);
-                                                            d.setHours(9, 0, 0, 0);
-                                                            break;
-                                                        case 'next_monday_afternoon':
-                                                            d.setDate(d.getDate() + (8 - d.getDay()) % 7 || 7);
-                                                            d.setHours(14, 0, 0, 0);
-                                                            break;
-                                                    }
-                                                    dueAt = d.getTime();
-                                                    if (dueAt <= now) dueAt += 24 * 60 * 60 * 1000;
-                                                }
-
-                                                setFollowUp({ ...followUp, dueAt, status: 'pending' });
-                                            }}
-                                            style={{
-                                                width: '100%',
-                                                marginBottom: '8px',
-                                                background: 'rgba(255,255,255,0.1)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '4px',
-                                                padding: '6px',
-                                                fontSize: '11px',
-                                                color: 'var(--text-secondary)',
-                                                cursor: 'pointer'
-                                            }}
-                                            value=""
-                                        >
-                                            <option value="" disabled>Select quick option...</option>
-                                            <optgroup label="Quick">
-                                                <option value={15 * 60 * 1000}>15m</option>
-                                                <option value={60 * 60 * 1000}>1h</option>
-                                                <option value={3 * 60 * 60 * 1000}>3h</option>
-                                            </optgroup>
-                                            <optgroup label="Days">
-                                                <option value="tomorrow_morning">Tomorrow Morning (9 AM)</option>
-                                                <option value="tomorrow_eod">Tomorrow EOD (5 PM)</option>
-                                                <option value="2d">2 Days (9 AM)</option>
-                                                <option value="3d">3 Days (9 AM)</option>
-                                            </optgroup>
-                                            <optgroup label="Next Week">
-                                                <option value="next_monday_morning">Next Monday Morning</option>
-                                                <option value="next_monday_afternoon">Next Monday Afternoon</option>
-                                            </optgroup>
-                                        </select>
-
-                                        <input
-                                            type="datetime-local"
-                                            value={formatToDatetimeLocal(followUp?.dueAt)}
-                                            onChange={e => setFollowUp({ ...followUp, dueAt: new Date(e.target.value).getTime(), status: 'pending' })}
-                                            style={{
-                                                width: '100%',
-                                                padding: '6px',
-                                                background: 'rgba(0,0,0,0.2)',
-                                                border: '1px solid rgba(255,255,255,0.1)',
-                                                borderRadius: '4px',
-                                                color: 'var(--text-secondary)',
-                                                fontSize: '11px'
-                                            }}
+                                    <div style={{ marginTop: '12px' }}>
+                                        <DateTimePicker
+                                            label="Follow Up"
+                                            value={followUp?.dueAt}
+                                            onChange={(timestamp) => setFollowUp({ ...followUp, dueAt: timestamp, status: 'pending' })}
+                                            onClear={() => setFollowUp({ ...followUp, dueAt: null })}
                                         />
-                                        {followUp?.dueAt && (
-                                            <div style={{ fontSize: '10px', color: 'var(--accent-primary)', marginTop: '4px', textAlign: 'right' }}>
-                                                Due: {new Date(followUp.dueAt).toLocaleString()}
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>
