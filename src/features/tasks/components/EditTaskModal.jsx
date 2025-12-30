@@ -29,6 +29,16 @@ export function EditTaskModal({ task, onSave, onCancel }) {
     // New Remind Before State
     const [remindBefore, setRemindBefore] = useState(task.remindBefore || null); // { value: 15, unit: 'minutes' }
 
+    const textareaRef = React.useRef(null);
+
+    // Auto-resize description textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [description]);
+
     // Prevent background scrolling when modal is open
     useEffect(() => {
         const originalStyle = window.getComputedStyle(document.body).overflow;
@@ -144,6 +154,7 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                         <div>
                             <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '12px' }}>Description</label>
                             <textarea
+                                ref={textareaRef}
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
                                 style={{
@@ -155,7 +166,8 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                     borderRadius: '8px',
                                     color: 'white',
                                     fontFamily: 'inherit',
-                                    resize: 'vertical'
+                                    resize: 'none',
+                                    overflow: 'hidden'
                                 }}
                                 placeholder="Add details..."
                             />
