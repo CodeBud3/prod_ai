@@ -1,6 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { FunnyTooltip } from '../../../components/ui';
 
+const formatToDatetimeLocal = (timestamp) => {
+    if (!timestamp) return '';
+    const d = new Date(timestamp);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export function EditTaskModal({ task, onSave, onCancel }) {
     const [title, setTitle] = useState(task.title);
     const [description, setDescription] = useState(task.description || '');
@@ -400,7 +411,7 @@ export function EditTaskModal({ task, onSave, onCancel }) {
 
                                         <input
                                             type="datetime-local"
-                                            value={followUp?.dueAt ? new Date(followUp.dueAt).toISOString().slice(0, 16) : ''}
+                                            value={formatToDatetimeLocal(followUp?.dueAt)}
                                             onChange={e => setFollowUp({ ...followUp, dueAt: new Date(e.target.value).getTime(), status: 'pending' })}
                                             style={{
                                                 width: '100%',
