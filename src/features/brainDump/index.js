@@ -19,6 +19,7 @@ export {
     selectBrainDumpStagedTasks,
     selectBrainDumpUsedFallback,
     selectBrainDumpCurrentView,
+    selectBrainDumpHasBeenDismissed,
     selectStagedTasksCount,
     selectHasStagedTasks
 } from './brainDumpSelectors';

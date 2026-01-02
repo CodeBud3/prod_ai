@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { AiEngine } from '../../services/AiEngine'
 import { SyncService } from '../../services/SyncService'
+import { signOut } from '../auth/authSlice'
 
 const initialState = {
     items: [],
@@ -265,6 +266,12 @@ const tasksSlice = createSlice({
                 state.loading = false
                 state.error = action.payload
             })
+            // Clear tasks on sign out to prevent data leakage to guest mode
+            .addCase(signOut.fulfilled, (state) => {
+                state.items = [];
+                state.loading = false
+                state.error = null
+            })
     }
 })
 
@@ -287,6 +294,25 @@ export const {
 
 export default tasksSlice.reducer
 
+// Async thunk to fetch tasks from cloud (pull only)
+export const fetchTasks = createAsyncThunk(
+    'tasks/fetchTasks',
+    async (userId, { dispatch, rejectWithValue }) => {
+        try {
+            const { data, error } = await SyncService.pullChanges(userId);
+            if (error) throw error;
+
+            if (data) {
+                dispatch(tasksSlice.actions.bulkUpdateTasks(data));
+            }
+            return data;
+        } catch (error) {
+            console.error('Fetch Tasks Failed:', error);
+            return rejectWithValue(error.message);
+        }
+    }
+)
+
 // Async thunk for initializing sync (migrate + pull)
 // Defined here to have access to tasksSlice.actions
 export const initializeSync = createAsyncThunk(
@@ -296,20 +322,16 @@ export const initializeSync = createAsyncThunk(
             const state = getState();
             // 1. Migrate local tasks (if any)
             const localTasks = state.tasks?.items || [];
+            // Only migrate if we suspect these are guest tasks. 
+            // In a real app we'd track "isGuestData" flag, but for now we'll just upsert.
+            // Safe because upsert is idempotent.
             if (localTasks.length > 0) {
                 await SyncService.migrateGuestData(localTasks, userId);
             }
 
             // 2. Pull changes from cloud
-            const { data, error } = await SyncService.pullChanges(userId);
-            if (error) throw error;
-
-            if (data) {
-                // Update local store with cloud data
-                // We use the action creator directly from the slice object we just created
-                dispatch(tasksSlice.actions.bulkUpdateTasks(data));
-            }
-            return data;
+            await dispatch(fetchTasks(userId));
+            return true;
         } catch (error) {
             console.error('Initialize Sync Failed:', error);
             return rejectWithValue(error.message);

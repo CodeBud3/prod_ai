@@ -108,5 +108,33 @@ export const SyncService = {
             console.error('SyncService: Delete failed', error);
             throw error;
         }
+    },
+    /**
+     * Subscribes to real-time changes for the user's tasks.
+     * @param {string} userId - UUID of the authenticated user
+     * @param {function} onChange - Callback to run when data changes
+     * @returns {object} Subscription object (call .unsubscribe() to clean up)
+     */
+    subscribeToChanges(userId, onChange) {
+        if (!userId) return null;
+
+        console.log('SyncService: Subscribing to changes for', userId);
+
+        return supabase
+            .channel(`public:tasks:user:${userId}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'tasks',
+                    filter: `user_id=eq.${userId}`
+                },
+                (payload) => {
+                    console.log('SyncService: Real-time update received', payload);
+                    onChange(payload);
+                }
+            )
+            .subscribe();
     }
 };

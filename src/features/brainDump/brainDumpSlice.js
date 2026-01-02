@@ -24,6 +24,7 @@ export const processBrainDumpAsync = createAsyncThunk(
 const initialState = {
     // Modal state
     isOpen: false,
+    hasBeenDismissed: false, // Track if user explicitly dismissed (prevents re-opening)
 
     // Input
     rawInput: '',
@@ -55,6 +56,7 @@ const brainDumpSlice = createSlice({
 
         closeBrainDump: (state) => {
             state.isOpen = false;
+            state.hasBeenDismissed = true; // Mark as dismissed so it won't auto-open again
             state.currentView = 'input';
             state.rawInput = '';
             state.stagedTasks = [];

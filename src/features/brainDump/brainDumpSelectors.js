@@ -7,6 +7,7 @@ export const selectBrainDumpError = (state) => state.brainDump.error;
 export const selectBrainDumpStagedTasks = (state) => state.brainDump.stagedTasks;
 export const selectBrainDumpUsedFallback = (state) => state.brainDump.usedFallback;
 export const selectBrainDumpCurrentView = (state) => state.brainDump.currentView;
+export const selectBrainDumpHasBeenDismissed = (state) => state.brainDump.hasBeenDismissed;
 
 // Derived selectors
 export const selectStagedTasksCount = (state) => state.brainDump.stagedTasks.length;

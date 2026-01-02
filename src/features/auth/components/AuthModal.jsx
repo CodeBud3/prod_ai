@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { signIn, signUp, signInWithGoogle, setGuest, clearError } from '../authSlice';
-import { selectAuthLoading, selectAuthError, selectIsSupabaseAvailable, selectNeedsEmailVerification } from '../authSelectors';
+import { selectAuthLoading, selectAuthError, selectIsSupabaseAvailable, selectNeedsEmailVerification, selectIsAuthenticated } from '../authSelectors';
 
 export function AuthModal({ isOpen, onClose }) {
     const dispatch = useDispatch();
@@ -9,6 +9,7 @@ export function AuthModal({ isOpen, onClose }) {
     const error = useSelector(selectAuthError);
     const isSupabaseAvailable = useSelector(selectIsSupabaseAvailable);
     const needsVerification = useSelector(selectNeedsEmailVerification);
+    const isAuthenticated = useSelector(selectIsAuthenticated);
 
     const [mode, setMode] = useState('signin'); // 'signin' | 'signup'
     const [email, setEmail] = useState('');
@@ -16,12 +17,20 @@ export function AuthModal({ isOpen, onClose }) {
     const [name, setName] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    // Auto-close modal when user becomes authenticated
+    useEffect(() => {
+        if (isAuthenticated && isOpen) {
+            onClose();
+        }
+    }, [isAuthenticated, isOpen, onClose]);
+
     const handleSignIn = async (e) => {
         e.preventDefault();
         if (!email || !password) return;
 
         const result = await dispatch(signIn({ email, password }));
-        if (!result.error) {
+        // Check if the action was fulfilled (not rejected)
+        if (signIn.fulfilled.match(result)) {
             onClose();
         }
     };
@@ -34,7 +43,7 @@ export function AuthModal({ isOpen, onClose }) {
         }
 
         const result = await dispatch(signUp({ email, password, name }));
-        if (!result.error && !needsVerification) {
+        if (signUp.fulfilled.match(result) && !needsVerification) {
             onClose();
         }
     };
@@ -278,25 +287,24 @@ export function AuthModal({ isOpen, onClose }) {
                 </div>
 
                 {/* Google Sign In */}
+                {/* Google Sign In - Coming Soon */}
                 <button
-                    onClick={handleGoogleSignIn}
-                    disabled={loading || !isSupabaseAvailable}
+                    disabled={true}
                     style={{
                         width: '100%',
                         padding: '14px',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '12px',
-                        color: 'white',
+                        color: 'var(--text-muted)',
                         fontSize: '15px',
                         fontWeight: 500,
-                        cursor: loading || !isSupabaseAvailable ? 'not-allowed' : 'pointer',
+                        cursor: 'not-allowed',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: '10px',
-                        opacity: loading || !isSupabaseAvailable ? 0.6 : 1,
-                        transition: 'all 0.2s',
+                        opacity: 0.5,
                         marginBottom: '16px'
                     }}
                 >
@@ -306,7 +314,7 @@ export function AuthModal({ isOpen, onClose }) {
                         <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
-                    Continue with Google
+                    Continue with Google (Coming Soon)
                 </button>
 
                 {/* Continue as Guest */}
