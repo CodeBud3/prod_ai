@@ -51,16 +51,10 @@ export const TaskSection = ({
             case 'completed':
                 return taskList.filter(t => t.status === 'done');
             case 'focus':
+                // Show tasks that have a focus pointer set
                 return taskList.filter(t => {
                     if (t.status === 'done') return false;
-                    // High/Critical priority
-                    if (t.priority === 'high' || t.priority === 'critical') return true;
-                    // Due today
-                    if (t.dueDate) {
-                        const due = new Date(t.dueDate);
-                        return due >= today && due <= endOfToday;
-                    }
-                    return false;
+                    return t.focusColor != null; // Has a focus color set
                 });
             case 'tomorrow':
                 return taskList.filter(t => {

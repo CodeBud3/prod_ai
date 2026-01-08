@@ -206,6 +206,29 @@ export function EditTaskModal({ task, onSave, onCancel }) {
                                 <div style={{ flex: 1 }}>
                                     <label style={{ display: 'block', marginBottom: '6px', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase' }}>Priority</label>
                                     <div style={{ display: 'flex', gap: '6px' }}>
+                                        {/* Clear Priority Button */}
+                                        <FunnyTooltip context="priority" content="Clear priority - No rush, do it whenever">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPriority('none')}
+                                                style={{
+                                                    width: '28px',
+                                                    height: '28px',
+                                                    borderRadius: '50%',
+                                                    border: priority === 'none' ? '3px solid white' : '2px solid rgba(255,255,255,0.3)',
+                                                    background: 'transparent',
+                                                    cursor: 'pointer',
+                                                    padding: 0,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: 'var(--text-muted)',
+                                                    fontSize: '14px'
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </FunnyTooltip>
                                         {priorityConfig.map(p => (
                                             <FunnyTooltip key={p.id} context="priority" content={p.label}>
                                                 <button

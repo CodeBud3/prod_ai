@@ -653,7 +653,7 @@ export function Dashboard() {
                                         </span>
                                     )}
                                 </div>
-                                <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-primary" disabled={!tasks.some(t => t.status !== 'done')}>
+                                <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-secondary" disabled={!tasks.some(t => t.status !== 'done')}>
                                     Enter Focus Mode
                                 </button>
                                 <button

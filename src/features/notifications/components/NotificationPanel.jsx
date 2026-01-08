@@ -15,6 +15,17 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
     const [soundPlaying, setSoundPlaying] = useState(false);
     const [currentSoundType, setCurrentSoundType] = useState(null);
 
+    // Helper to immediately stop audio
+    const stopAudio = () => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current = null;
+        }
+        setSoundPlaying(false);
+        setCurrentSoundType(null);
+    };
+
     // Determine which sound to play based on notification priority
     // Priority: dueDate > followUp > reminder
     const getHighestPriorityType = (notifs) => {
@@ -73,6 +84,22 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
 
     // Only return null AFTER the audio effect has had a chance to stop the audio
     if (!notifications || notifications.length === 0) return null;
+
+    // Wrapped handlers that stop audio immediately before calling parent
+    const handleDismiss = (notificationId) => {
+        stopAudio();
+        onDismiss(notificationId);
+    };
+
+    const handleSnooze = (taskId, notificationId) => {
+        stopAudio();
+        onSnooze(taskId, notificationId);
+    };
+
+    const handleComplete = (taskId, notificationId) => {
+        stopAudio();
+        onComplete(taskId, notificationId);
+    };
 
     return (
         <div className="fade-in" style={{
@@ -157,7 +184,7 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                                 </div>
                                 <button
                                     title="Dismiss"
-                                    onClick={() => onDismiss(notification.id)}
+                                    onClick={() => handleDismiss(notification.id)}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -181,14 +208,14 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
 
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button
-                                    onClick={() => onComplete(notification.taskId, notification.id)}
+                                    onClick={() => handleComplete(notification.taskId, notification.id)}
                                     className="btn-primary"
                                     style={{ padding: '6px 12px', fontSize: '12px', flex: 1 }}
                                 >
                                     Complete
                                 </button>
                                 <button
-                                    onClick={() => onSnooze(notification.taskId, notification.id)}
+                                    onClick={() => handleSnooze(notification.taskId, notification.id)}
                                     className="btn-secondary"
                                     style={{ padding: '6px 12px', fontSize: '12px', flex: 1 }}
                                 >
