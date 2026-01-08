@@ -15,7 +15,7 @@ import { TaskSection } from './TaskSection';
 import { selectUser, selectTheme, selectFocusMode } from '../../user/userSelectors';
 import { toggleFocusMode } from '../../user/userSlice';
 import { selectAllTasks, selectMyTasks, selectDelegatedTasks } from '../../tasks/tasksSelectors';
-import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan, TASK_CATEGORIES } from '../../tasks/tasksSlice';
+import { addTask, updateTask, deleteTask, toggleTask, setReminder, dismissReminder, setFocusColor, checkReminders, generateTaskPlan, fetchAiSuggestion, TASK_CATEGORIES } from '../../tasks/tasksSlice';
 import { selectPlanSummary, selectHasPlan } from '../../plan/planSelectors';
 import { clearPlan } from '../../plan/planSlice';
 import { addNotification, removeNotification, clearAllNotifications } from '../../notifications/notificationsSlice';
@@ -653,6 +653,54 @@ export function Dashboard() {
                                         </span>
                                     )}
                                 </div>
+                                <button
+                                    onClick={async () => {
+                                        // Find all active visible tasks
+                                        // Combining filteredMyTasks and filteredDelegatedTasks defined in render scope, but they aren't available here directly 
+                                        // Wait, filteredMyTasks is defined in render, so we can use it if we are inside render.
+                                        // Yes, this is inside render return.
+                                        const visibleTasks = [
+                                            ...filteredMyTasks,
+                                            ...filteredDelegatedTasks
+                                        ].filter(t => t.status !== 'done');
+
+                                        if (visibleTasks.length === 0) return;
+
+                                        // Simple visual feedback
+                                        const btn = document.getElementById('ai-plan-btn');
+                                        if (btn) {
+                                            const originalText = btn.innerHTML;
+                                            btn.innerHTML = '<span>🧠</span> Thinking...';
+                                            btn.style.opacity = '0.7';
+                                            btn.style.cursor = 'wait';
+
+                                            // Process tasks
+                                            // We'll limit concurrency slightly just to be safe, though promise.all is fine for <50 tasks
+                                            await Promise.all(visibleTasks.map(t => dispatch(fetchAiSuggestion(t))));
+
+                                            // Visual completion feedback
+                                            btn.innerHTML = '<span>✅</span> Done!';
+                                            setTimeout(() => {
+                                                btn.innerHTML = originalText;
+                                                btn.style.opacity = '1';
+                                                btn.style.cursor = 'pointer';
+                                            }, 2000);
+                                        }
+                                    }}
+                                    id="ai-plan-btn"
+                                    className="btn-secondary"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        background: 'rgba(99, 102, 241, 0.1)',
+                                        border: '1px solid rgba(99, 102, 241, 0.3)',
+                                        color: '#818cf8',
+                                    }}
+                                    title="Generate AI suggested focus/schedule for all visible tasks"
+                                >
+                                    <span>✨</span> AI Plan
+                                </button>
                                 <button onClick={() => dispatch(toggleFocusMode(true))} className="btn-secondary" disabled={!tasks.some(t => t.status !== 'done')}>
                                     Enter Focus Mode
                                 </button>

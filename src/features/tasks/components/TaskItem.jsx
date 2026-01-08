@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { fetchAiSuggestion } from '../../tasks/tasksSlice';
 import { CircularProgress } from '../../../components/ui';
 import confetti from 'canvas-confetti';
 import { MotivationalPopup } from '../../../components/ui';
@@ -19,6 +21,28 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
     const [showFocusPicker, setShowFocusPicker] = useState(false);
     const [motivationalMessage, setMotivationalMessage] = useState(null);
     const [showRecurringFlash, setShowRecurringFlash] = useState(false);
+
+    // AI Suggestions State
+    const dispatch = useDispatch();
+    const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+    const [isLoadingAi, setIsLoadingAi] = useState(false);
+
+    const handleToggleAi = async (e) => {
+        e.stopPropagation();
+        if (!showAiSuggestions && !task.aiSuggestion) {
+            setIsLoadingAi(true);
+            await dispatch(fetchAiSuggestion(task));
+            setIsLoadingAi(false);
+        }
+        setShowAiSuggestions(!showAiSuggestions);
+    };
+
+    const handleRefreshAi = async (e) => {
+        e.stopPropagation();
+        setIsLoadingAi(true);
+        await dispatch(fetchAiSuggestion(task));
+        setIsLoadingAi(false);
+    };
 
     const handleToggle = (e) => {
         const isCompleting = task.status !== 'done';
@@ -564,6 +588,8 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
                         </div>
                     )}
 
+
+
                     {/* Focus Pointer Control */}
                     <div className="focus-control" style={{ position: 'relative' }}>
                         <FunnyTooltip context="focus">
@@ -642,6 +668,30 @@ export function TaskItem({ task, toggleTask, setEditingTask, handleSetReminder, 
 
                 {/* Deadline Progress Bar & Phrases */}
                 {task.dueDate && <LiveDeadline dueDate={task.dueDate} createdAt={task.createdAt} />}
+
+                {/* AI Suggestion Compact Display (Right-aligned one-liner) */}
+                {task.aiSuggestion && (
+                    <div style={{
+                        marginTop: '6px',
+                        display: 'flex',
+                        alignSelf: 'flex-start',
+                        gap: '6px',
+                        alignItems: 'center',
+                        fontSize: '11px',
+                        color: 'var(--accent-primary)',
+                        background: 'rgba(99, 102, 241, 0.1)',
+                        border: '1px solid rgba(99, 102, 241, 0.2)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        maxWidth: '100%',
+                        animation: 'fadeIn 0.5s ease'
+                    }}>
+                        <span style={{ fontSize: '12px' }}>✨</span>
+                        <span style={{ fontStyle: 'italic' }}>
+                            {typeof task.aiSuggestion === 'string' ? task.aiSuggestion : (task.aiSuggestion.coach || task.aiSuggestion.pa)}
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { AiEngine } from '../../services/AiEngine'
+import { generateTaskSuggestions } from '../../services/ai'
 import { SyncService } from '../../services/SyncService'
 import { signOut } from '../auth/authSlice'
 
@@ -93,6 +94,21 @@ export const generateTaskPlan = createAsyncThunk(
             return plan
         } catch (error) {
             return rejectWithValue(error.message)
+        }
+    }
+)
+
+// Async thunk for single task suggestion
+export const fetchAiSuggestion = createAsyncThunk(
+    'tasks/fetchAiSuggestion',
+    async (task, { rejectWithValue }) => {
+        try {
+            const suggestion = await generateTaskSuggestions(task);
+            return { taskId: task.id, suggestion };
+        } catch (error) {
+            console.error('Failed to fetch suggestion:', error);
+            // Don't reject for UI smoothness, just return null suggestion
+            return { taskId: task.id, suggestion: null };
         }
     }
 )
@@ -271,6 +287,14 @@ const tasksSlice = createSlice({
                 state.items = [];
                 state.loading = false
                 state.error = null
+            })
+            // AI Suggestion Result
+            .addCase(fetchAiSuggestion.fulfilled, (state, action) => {
+                const { taskId, suggestion } = action.payload;
+                const task = state.items.find(t => t.id === taskId);
+                if (task) {
+                    task.aiSuggestion = suggestion;
+                }
             })
     }
 })
