@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { AiEngine } from '../../services/AiEngine'
-import { generateTaskSuggestions } from '../../services/ai'
+import { generateTaskSuggestions, generateBatchTaskSuggestions } from '../../services/ai'
 import { SyncService } from '../../services/SyncService'
 import { signOut } from '../auth/authSlice'
 
@@ -109,6 +109,20 @@ export const fetchAiSuggestion = createAsyncThunk(
             console.error('Failed to fetch suggestion:', error);
             // Don't reject for UI smoothness, just return null suggestion
             return { taskId: task.id, suggestion: null };
+        }
+    }
+)
+
+// Async thunk for batch task suggestions
+export const fetchBatchAiSuggestions = createAsyncThunk(
+    'tasks/fetchBatchAiSuggestions',
+    async (tasks, { rejectWithValue }) => {
+        try {
+            const suggestions = await generateBatchTaskSuggestions(tasks);
+            return suggestions; // Returns object { taskId: suggestion, ... }
+        } catch (error) {
+            console.error('Failed to fetch batch suggestions:', error);
+            return rejectWithValue(error.message);
         }
     }
 )
@@ -294,6 +308,18 @@ const tasksSlice = createSlice({
                 const task = state.items.find(t => t.id === taskId);
                 if (task) {
                     task.aiSuggestion = suggestion;
+                }
+            })
+            // Batch AI Suggestion Result
+            .addCase(fetchBatchAiSuggestions.fulfilled, (state, action) => {
+                const suggestions = action.payload; // { taskId: suggestionString, ... }
+                if (suggestions) {
+                    Object.entries(suggestions).forEach(([taskId, suggestionString]) => {
+                        const task = state.items.find(t => t.id === taskId || t.id === Number(taskId)); // loose matching for ID types
+                        if (task) {
+                            task.aiSuggestion = suggestionString;
+                        }
+                    });
                 }
             })
     }
