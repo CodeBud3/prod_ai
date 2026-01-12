@@ -95,7 +95,7 @@ export function Dashboard() {
 
             // Check for tasks nearing/at/past due date (critical alarm)
             const dueDateTasks = tasks.filter(task => {
-                if (task.status === 'done' || !task.dueDate) return false;
+                if (task.status === 'done' || task.deleted || !task.dueDate) return false;
 
                 // Skip if task has a future remindAt (snoozed)
                 if (task.remindAt && task.remindAt > now) return false;
@@ -126,7 +126,7 @@ export function Dashboard() {
 
             // Check for follow-ups (intermediate reminder)
             const followUpDueTasks = tasks.filter(task => {
-                if (task.status === 'done') return false;
+                if (task.status === 'done' || task.deleted) return false;
 
                 // Skip if task was dismissed within the last 1 hour
                 if (task.lastDismissedAt && (now - task.lastDismissedAt) < 60 * 60 * 1000) return false;
@@ -155,6 +155,7 @@ export function Dashboard() {
 
             // Check for active reminders (revisit task reminders and 'remind me x time before')
             const activeReminders = tasks.filter(task => {
+                if (task.status === 'done' || task.deleted) return false;
                 if (task.lastDismissedAt && (now - task.lastDismissedAt) < 60 * 60 * 1000) return false;
                 return task.reminding;
             });
