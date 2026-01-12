@@ -263,6 +263,9 @@ const tasksSlice = createSlice({
         checkReminders: (state) => {
             const now = Date.now()
             state.items.forEach(task => {
+                // Skip completed or deleted tasks - they should never trigger reminders
+                if (task.status === 'done' || task.deleted) return;
+
                 const isRemindDue = task.remindAt && task.remindAt <= now && !task.reminding;
                 const isFollowUpDue = task.followUp?.dueAt && task.followUp.dueAt <= now && task.followUp.status === 'pending' && !task.reminding;
 

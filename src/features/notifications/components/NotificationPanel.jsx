@@ -14,6 +14,10 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
     const audioRef = useRef(null);
     const [soundPlaying, setSoundPlaying] = useState(false);
     const [currentSoundType, setCurrentSoundType] = useState(null);
+    const [isMuted, setIsMuted] = useState(() => {
+        // Persist mute preference in localStorage
+        return localStorage.getItem('notification_muted') === 'true';
+    });
 
     // Helper to immediately stop audio
     const stopAudio = () => {
@@ -53,6 +57,13 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
         const priorityType = getHighestPriorityType(notifications);
         setCurrentSoundType(priorityType);
 
+        // Don't play audio if muted
+        if (isMuted) {
+            console.log('[NotificationPanel] Sound muted, skipping audio');
+            setSoundPlaying(false);
+            return;
+        }
+
         // Create new audio with appropriate sound
         const soundPath = SOUNDS[priorityType] || SOUNDS.reminder;
         console.log('[NotificationPanel] Playing sound:', soundPath, 'for type:', priorityType);
@@ -80,7 +91,7 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 audioRef.current.currentTime = 0;
             }
         };
-    }, [notifications?.length, notifications?.map(n => n.type).join(',')]);
+    }, [notifications?.length, notifications?.map(n => n.type).join(','), isMuted]);
 
     // Only return null AFTER the audio effect has had a chance to stop the audio
     if (!notifications || notifications.length === 0) return null;
@@ -99,6 +110,15 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
     const handleComplete = (taskId, notificationId) => {
         stopAudio();
         onComplete(taskId, notificationId);
+    };
+
+    const handleToggleMute = () => {
+        const newMuted = !isMuted;
+        setIsMuted(newMuted);
+        localStorage.setItem('notification_muted', newMuted.toString());
+        if (newMuted) {
+            stopAudio(); // Immediately stop audio when muting
+        }
     };
 
     return (
@@ -122,9 +142,31 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 gap: '8px',
                 alignItems: 'center'
             }}>
-                {soundPlaying && (
+                {/* Mute/Unmute Toggle Button */}
+                <button
+                    onClick={handleToggleMute}
+                    title={isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                    style={{
+                        background: isMuted ? 'var(--accent-danger)' : 'var(--accent-success)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                        transition: 'all 0.2s ease'
+                    }}
+                >
+                    {isMuted ? '🔇 Muted' : '🔊 Sound On'}
+                </button>
+                {soundPlaying && !isMuted && (
                     <span style={{
-                        background: 'var(--accent-success)',
+                        background: 'var(--accent-warning)',
                         color: 'white',
                         padding: '4px 12px',
                         borderRadius: '20px',
@@ -132,9 +174,10 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '4px',
+                        animation: 'pulse 1s infinite'
                     }}>
-                        🔊 Alarm Active
+                        🔔 Alarm Active
                     </span>
                 )}
                 <span style={{
