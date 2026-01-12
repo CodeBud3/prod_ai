@@ -10,14 +10,10 @@ const SOUNDS = {
 import UseAnimations from 'react-useanimations';
 import trash2 from 'react-useanimations/lib/trash2';
 
-export function NotificationPanel({ notifications, onDismiss, onSnooze, onComplete }) {
+export function NotificationPanel({ notifications, onDismiss, onSnooze, onComplete, isMuted }) {
     const audioRef = useRef(null);
     const [soundPlaying, setSoundPlaying] = useState(false);
     const [currentSoundType, setCurrentSoundType] = useState(null);
-    const [isMuted, setIsMuted] = useState(() => {
-        // Persist mute preference in localStorage
-        return localStorage.getItem('notification_muted') === 'true';
-    });
 
     // Helper to immediately stop audio
     const stopAudio = () => {
@@ -40,6 +36,7 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
     };
 
     // Audio playback effect
+    /* ... (unchanged) ... */
     useEffect(() => {
         // Stop any existing audio first
         if (audioRef.current) {
@@ -81,7 +78,8 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 })
                 .catch(err => {
                     console.warn('[NotificationPanel] Audio playback failed:', err.message);
-                    setSoundPlaying(false);
+                    // Still enable visual alarm even if audio fails (e.g. autoplay blocked)
+                    setSoundPlaying(true);
                 });
         }
 
@@ -112,15 +110,6 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
         onComplete(taskId, notificationId);
     };
 
-    const handleToggleMute = () => {
-        const newMuted = !isMuted;
-        setIsMuted(newMuted);
-        localStorage.setItem('notification_muted', newMuted.toString());
-        if (newMuted) {
-            stopAudio(); // Immediately stop audio when muting
-        }
-    };
-
     return (
         <div className="fade-in" style={{
             position: 'fixed',
@@ -142,28 +131,6 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 gap: '8px',
                 alignItems: 'center'
             }}>
-                {/* Mute/Unmute Toggle Button */}
-                <button
-                    onClick={handleToggleMute}
-                    title={isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
-                    style={{
-                        background: isMuted ? 'var(--accent-danger)' : 'var(--accent-success)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                        transition: 'all 0.2s ease'
-                    }}
-                >
-                    {isMuted ? '🔇 Muted' : '🔊 Sound On'}
-                </button>
                 {soundPlaying && !isMuted && (
                     <span style={{
                         background: 'var(--accent-warning)',
@@ -273,6 +240,11 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                 @keyframes slideInRight {
                     from { transform: translateX(100%); opacity: 0; }
                     to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.1); opacity: 0.8; }
+                    100% { transform: scale(1); opacity: 1; }
                 }
             `}</style>
         </div >

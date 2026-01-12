@@ -41,6 +41,15 @@ export function Dashboard() {
     const [loading, setLoading] = useState(!hasPlan && tasks.length > 0);
     const [editingTask, setEditingTask] = useState(null);
     const [showPrioritization, setShowPrioritization] = useState(false);
+    const [isMuted, setIsMuted] = useState(() => {
+        return localStorage.getItem('notification_muted') === 'true';
+    });
+
+    const handleToggleMute = () => {
+        const newMuted = !isMuted;
+        setIsMuted(newMuted);
+        localStorage.setItem('notification_muted', newMuted.toString());
+    };
     const [myTasksSort, setMyTasksSort] = useState('smart'); // Lifted state for My Tasks sort
     const [activeFilter, setActiveFilter] = useState(null); // Sidebar filter: 'yesterday', 'today', 'actions', 'delegations', 'decisions', 'tomorrow', 'horizon'
     const [activeBucket, setActiveBucket] = useState(null); // Bucket filter: 'work', 'personal', 'errands'
@@ -626,13 +635,33 @@ export function Dashboard() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ position: 'relative' }}>
-                                    <div style={{ cursor: 'pointer' }}>
+                                    <div
+                                        onClick={handleToggleMute}
+                                        title={isMuted ? "Notifications Muted (Click to Unmute)" : "Notifications On (Click to Mute)"}
+                                        style={{
+                                            cursor: 'pointer',
+                                            opacity: isMuted ? 0.5 : 1,
+                                            position: 'relative'
+                                        }}
+                                    >
                                         <UseAnimations
                                             animation={notification}
                                             size={28}
                                             strokeColor="white"
                                             fillColor="white"
                                         />
+                                        {isMuted && (
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: '50%',
+                                                left: '50%',
+                                                transform: 'translate(-50%, -50%) rotate(45deg)',
+                                                width: '100%',
+                                                height: '2px',
+                                                background: 'var(--accent-danger)',
+                                                boxShadow: '0 0 2px black'
+                                            }} />
+                                        )}
                                     </div>
                                     {notifications.length > 0 && (
                                         <span style={{
@@ -830,6 +859,8 @@ export function Dashboard() {
 
                 <NotificationPanel
                     notifications={notifications}
+                    isMuted={isMuted}
+                    onToggleMute={handleToggleMute}
                     onDismiss={(notificationId) => {
                         // Find the notification to check its type
                         const notification = notifications.find(n => n.id === notificationId);
