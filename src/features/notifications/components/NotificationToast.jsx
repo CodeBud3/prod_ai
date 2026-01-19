@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 
 // Sound file paths for different notification types
 const SOUNDS = {
-    dueDate: '/critical_alarm.mp3',           // Critical: tasks nearing/at/past due date
+    dueDate: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3',           // Critical: tasks nearing/at/past due date
     followUp: '/porsche_seatbelt_chime.mp3',  // Intermediate: follow-up reminders
     reminder: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3'  // Revisit tasks & 'remind me x time before'
 };

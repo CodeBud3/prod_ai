@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 
 // Sound file paths for different notification types
 const SOUNDS = {
-    dueDate: '/critical_alarm.mp3',           // Critical: tasks nearing/at/past due date
+    dueDate: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3',  // Critical: tasks nearing/at/past due date
     followUp: '/porsche_seatbelt_chime.mp3',  // Intermediate: follow-up reminders
     reminder: '/Aircraft_Seatbelt_Sign_Sound_Effect-639486-mobiles24.mp3'  // Revisit tasks & 'remind me x time before'
 };
@@ -63,11 +63,23 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
 
         // Create new audio with appropriate sound
         const soundPath = SOUNDS[priorityType] || SOUNDS.reminder;
-        console.log('[NotificationPanel] Playing sound:', soundPath, 'for type:', priorityType);
+        console.log('[NotificationPanel] Attempting to play sound:', soundPath, 'for type:', priorityType);
 
         const audio = new Audio(soundPath);
         audio.loop = true;
+        audio.volume = 1.0; // Ensure full volume
         audioRef.current = audio;
+
+        // Handle audio load error
+        audio.onerror = (e) => {
+            console.error('[NotificationPanel] Audio failed to load:', soundPath, e);
+            setSoundPlaying(false);
+        };
+
+        // Handle successful audio load
+        audio.oncanplaythrough = () => {
+            console.log('[NotificationPanel] Audio loaded successfully:', soundPath);
+        };
 
         const playPromise = audio.play();
         if (playPromise !== undefined) {
@@ -77,9 +89,23 @@ export function NotificationPanel({ notifications, onDismiss, onSnooze, onComple
                     setSoundPlaying(true);
                 })
                 .catch(err => {
-                    console.warn('[NotificationPanel] Audio playback failed:', err.message);
+                    console.warn('[NotificationPanel] Audio playback blocked by browser:', err.message);
+                    console.warn('[NotificationPanel] User interaction required to unlock audio. Click anywhere on the page.');
                     // Still enable visual alarm even if audio fails (e.g. autoplay blocked)
                     setSoundPlaying(true);
+
+                    // Try to unlock audio on next user interaction
+                    const unlockAudio = () => {
+                        if (audioRef.current) {
+                            audioRef.current.play()
+                                .then(() => console.log('[NotificationPanel] Audio unlocked after user interaction'))
+                                .catch(() => { }); // Silent fail if still blocked
+                        }
+                        document.removeEventListener('click', unlockAudio);
+                        document.removeEventListener('keydown', unlockAudio);
+                    };
+                    document.addEventListener('click', unlockAudio, { once: true });
+                    document.addEventListener('keydown', unlockAudio, { once: true });
                 });
         }
 

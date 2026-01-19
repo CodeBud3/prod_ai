@@ -900,6 +900,7 @@ export function Dashboard() {
                                     reminding: false,
                                     remindAt: oneHourFromNow,
                                     reminderStartedAt: Date.now(),
+                                    lastDismissedAt: Date.now(), // Prevent immediate re-trigger
                                     followUp: task.assignee ? {
                                         ...(task.followUp || {}),
                                         dueAt: oneHourFromNow,
@@ -917,14 +918,16 @@ export function Dashboard() {
                             dispatch(updateTask({
                                 id: task.id,
                                 updates: {
+                                    status: 'done', // Actually mark task as done
+                                    completedAt: Date.now(), // Set completion timestamp
                                     reminding: false,
+                                    remindAt: null,
+                                    reminderStartedAt: null,
                                     followUp: task.assignee ? {
                                         ...(task.followUp || {}),
                                         status: 'completed',
                                         dueAt: null
-                                    } : task.followUp,
-                                    remindAt: !task.assignee ? null : task.remindAt,
-                                    reminderStartedAt: !task.assignee ? null : task.reminderStartedAt
+                                    } : task.followUp
                                 }
                             }));
                         }
